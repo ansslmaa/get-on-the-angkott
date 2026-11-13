@@ -458,6 +458,7 @@ if (mochiAdded) {
     document.getElementById('cart-total').innerText = formatRp(total);
 
     calculatePosChange();
+    updatePosDynamicQris();
 }
 
 // PILIH METODE PEMBAYARAN POS
@@ -482,7 +483,7 @@ function setPosPaymentMethod(method) {
 
     if (method === 'QRIS') {
         const qrisImage = document.getElementById('pos-qris-img');
-        if (qrisImage) qrisImage.src = qrisImgUrl || DEFAULT_QRIS;
+        updatePosDynamicQris();
     }
 }
 
@@ -1144,6 +1145,62 @@ function clearCart() {
 
 
         // ================= 6. RIWAYAT TRANSAKSI =================
+        function renderHistoryTable() {
+            const tbody = document.getElementById('history-table-body');
+            if (!tbody) return;
+
+            const dateFilter = document.getElementById('history-date-filter')?.value || '';
+            const methodFilter = document.getElementById('history-method-filter')?.value || '';
+            const searchFilter = (document.getElementById('history-search')?.value || '').toLowerCase();
+
+            const filtered = historyLogs.filter(h => {
+                const txDate = (h.date || '').split('T')[0];
+                const matchDate = !dateFilter || txDate === dateFilter;
+                const matchMethod = !methodFilter || h.method === methodFilter;
+                const matchSearch = (h.customer || '').toLowerCase().includes(searchFilter) ||
+                                    (h.id || '').toLowerCase().includes(searchFilter) ||
+                                    (h.orderId || '').toLowerCase().includes(searchFilter);
+                return matchDate && matchMethod && matchSearch;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="p-8 text-center text-slate-400 font-bold">
+                            Tidak ada riwayat transaksi ditemukan.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(h => {
+                const itemsText = (h.items && h.items.length > 0)
+                    ? h.items.map(i => `${i.name} (${i.qty}x)`).join(', ')
+                    : (h.orderId || '-');
+
+                return `
+                    <tr class="hover:bg-slate-50 border-b text-xs">
+                        <td class="p-3 font-semibold text-slate-600">${new Date(h.date).toLocaleString('id-ID')}</td>
+                        <td class="p-3 font-mono font-bold text-slate-800">${h.id}</td>
+                        <td class="p-3 font-bold text-slate-900">${h.customer}</td>
+                        <td class="p-3 font-semibold text-slate-700">${h.type}</td>
+                        <td class="p-3 text-slate-600">${itemsText}</td>
+                        <td class="p-3">
+                            <span class="px-2 py-0.5 rounded border border-black font-bold ${h.method === 'QRIS' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}">
+                                ${h.method}
+                            </span>
+                        </td>
+                        <td class="p-3 font-bold text-brand-blue text-right">
+                            ${formatRp(h.amount)}
+                            <button onclick="deleteHistoryTransaction('${h.id}')" title="Hapus Transaksi" class="ml-2 px-2 py-0.5 bg-red-100 text-red-700 border border-red-400 rounded hover:bg-red-200">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
         function deleteHistoryTransaction(transactionId) {
 
     const transaction = historyLogs.find(
@@ -1392,3 +1449,170 @@ function clearCart() {
     renderDashboard();
     setPosPaymentMethod('CASH');
 };
+// ================= 10. GENERATOR QRIS DINAMIS OTOMATIS =================
+        let STATIC_QRIS_RAW = localStorage.getItem('got_qris_raw') || '';
+
+        // Otomatis baca teks QRIS dari gambar QRIS yang tersimpan di pengaturan
+        function extractQrisFromImage(imgUrl, callback) {
+            if (!imgUrl || imgUrl.includes('api.qrserver.com')) return;
+            const img = new Image();
+            img.crossOrigin = 'Anonymous';
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                if (window.jsQR) {
+                    const code = window.jsQR(imgData.data, imgData.width, imgData.height);
+                    if (code && code.data && code.data.startsWith('000201')) {
+                        STATIC_QRIS_RAW = code.data;
+                        localStorage.setItem('got_qris_raw', code.data);
+                        if (callback) callback();
+                    }
+                }
+            };
+            img.src = imgUrl;
+        }
+
+        function crc16Qris(str) {
+            let crc = 0xFFFF;
+            for (let i = 0; i < str.length; i++) {
+                crc ^= str.charCodeAt(i) << 8;
+                for (let j = 0; j < 8; j++) {
+                    crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1);
+                }
+            }
+            return (crc & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
+        }
+
+        function getDynamicQrisUrl(amount) {
+            const nominal = Math.round(Number(amount) || 0);
+            if (!STATIC_QRIS_RAW || nominal <= 0) {
+                return qrisImgUrl || DEFAULT_QRIS;
+            }
+            let qrisBase = STATIC_QRIS_RAW.slice(0, -4).replace('010211', '010212');
+            const amtStr = String(nominal);
+            const tag54 = '54' + String(amtStr.length).padStart(2, '0') + amtStr;
+
+            const idx58 = qrisBase.indexOf('5802ID');
+            if (idx58 === -1) return qrisImgUrl || DEFAULT_QRIS;
+
+            const payloadWithoutCrc = qrisBase.slice(0, idx58) + tag54 + qrisBase.slice(idx58);
+            const dynamicPayload = payloadWithoutCrc + crc16Qris(payloadWithoutCrc);
+
+            return `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(dynamicPayload)}`;
+        }
+
+        function updatePosDynamicQris() {
+            const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            const qrisImage = document.getElementById('pos-qris-img');
+            if (!STATIC_QRIS_RAW && qrisImgUrl) {
+                extractQrisFromImage(qrisImgUrl, updatePosDynamicQris);
+            }
+            if (qrisImage) qrisImage.src = getDynamicQrisUrl(total);
+        }
+
+        // Jalankan pembacaan gambar QRIS saat halaman dibuka
+        if (!STATIC_QRIS_RAW && qrisImgUrl) {
+            extractQrisFromImage(qrisImgUrl);
+        }
+        
+        // ================= 11. EXPORT LAPORAN KEUANGAN KE EXCEL (.XLSX) =================
+        function exportToExcel() {
+            if (typeof XLSX === 'undefined') {
+                showToast('Library Excel belum termuat, coba refresh halaman!', 'fa-circle-exclamation');
+                return;
+            }
+
+            const wb = XLSX.utils.book_new();
+
+            // 1. SHEET RINGKASAN KEUANGAN
+            const totalIncome = historyLogs.reduce((s, h) => s + Number(h.amount || 0), 0);
+            const cashTotal = historyLogs.filter(h => h.method === 'CASH').reduce((s, h) => s + Number(h.amount || 0), 0);
+            const qrisTotal = historyLogs.filter(h => h.method === 'QRIS').reduce((s, h) => s + Number(h.amount || 0), 0);
+            const posTotal = historyLogs.filter(h => (h.type || '').includes('POS')).reduce((s, h) => s + Number(h.amount || 0), 0);
+            const poTotal = totalIncome - posTotal;
+
+            const summaryData = [
+                ['LAPORAN KEUANGAN — GET ON THE ANGKOT'],
+                ['Tanggal Cetak', new Date().toLocaleString('id-ID')],
+                [''],
+                ['Keterangan', 'Nilai (Rp)'],
+                ['Total Pemasukan Keseluruhan', totalIncome],
+                ['Total Pemasukan CASH (Tunai)', cashTotal],
+                ['Total Pemasukan QRIS', qrisTotal],
+                ['Pemasukan Kasir Langsung (POS)', posTotal],
+                ['Pemasukan Pre-Order (DP & Pelunasan)', poTotal],
+                ['Total Jumlah Transaksi', historyLogs.length]
+            ];
+            const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+            wsSummary['!cols'] = [{ wch: 38 }, { wch: 20 }];
+            XLSX.utils.book_append_sheet(wb, wsSummary, 'Ringkasan Keuangan');
+
+            // 2. SHEET RIWAYAT TRANSAKSI
+            const historyRows = historyLogs.map((h, idx) => ({
+                'No': idx + 1,
+                'Waktu Transaksi': new Date(h.date).toLocaleString('id-ID'),
+                'ID Transaksi': h.id,
+                'Nama Pelanggan': h.customer,
+                'Kategori Pembayaran': h.type,
+                'Rincian Produk': (h.items && h.items.length > 0)
+                    ? h.items.map(i => `${i.name} (${i.qty}x)`).join(', ')
+                    : (h.orderId || '-'),
+                'Metode Bayar': h.method,
+                'Nominal Masuk (Rp)': Number(h.amount || 0)
+            }));
+            const wsHistory = XLSX.utils.json_to_sheet(historyRows);
+            wsHistory['!cols'] = [
+                { wch: 5 }, { wch: 22 }, { wch: 18 }, { wch: 22 },
+                { wch: 25 }, { wch: 35 }, { wch: 14 }, { wch: 20 }
+            ];
+            XLSX.utils.book_append_sheet(wb, wsHistory, 'Riwayat Transaksi');
+
+            // 3. SHEET DATA PRE-ORDER
+            const poRows = preOrders.map((po, idx) => ({
+                'No': idx + 1,
+                'ID PO': po.id,
+                'Nama Pelanggan': po.customerName,
+                'No. HP / WA': po.phone || '-',
+                'Tanggal Ambil': po.pickupDate,
+                'Pesanan': po.items.map(i => `${i.name} (${i.qtyPicked}/${i.qtyTotal})`).join(', '),
+                'Total Tagihan (Rp)': Number(po.totalAmount || 0),
+                'Sudah Dibayar (Rp)': Number(po.totalPaid || 0),
+                'Sisa Tagihan (Rp)': Number(po.balanceRemaining || 0),
+                'Status Bayar': po.paymentStatus,
+                'Status Ambil': po.pickupStatus
+            }));
+            const wsPo = XLSX.utils.json_to_sheet(poRows);
+            wsPo['!cols'] = [
+                { wch: 5 }, { wch: 14 }, { wch: 22 }, { wch: 16 }, { wch: 15 },
+                { wch: 35 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 15 }, { wch: 18 }
+            ];
+            XLSX.utils.book_append_sheet(wb, wsPo, 'Data Pre-Order');
+
+            // 4. SHEET STOK & PENJUALAN PRODUK
+            const prodRows = products.map((p, idx) => ({
+                'No': idx + 1,
+                'Nama Produk': p.name,
+                'Kategori': p.category || 'Umum',
+                'Harga Satuan (Rp)': Number(p.price || 0),
+                'Sisa Stok Fisik': Number(p.stock || 0),
+                'Dialokasikan PO': Number(p.allocated || 0),
+                'Stok Bebas': Math.max(0, Number(p.stock || 0) - Number(p.allocated || 0)),
+                'Total Terjual (pcs)': Number(p.sold || 0),
+                'Estimasi Omzet Produk (Rp)': Number(p.price || 0) * Number(p.sold || 0)
+            }));
+            const wsProd = XLSX.utils.json_to_sheet(prodRows);
+            wsProd['!cols'] = [
+                { wch: 5 }, { wch: 24 }, { wch: 15 }, { wch: 18 },
+                { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 18 }, { wch: 24 }
+            ];
+            XLSX.utils.book_append_sheet(wb, wsProd, 'Stok & Produk');
+
+            // Simpan & unduh otomatis file Excel
+            const dateStamp = new Date().toISOString().split('T')[0];
+            XLSX.writeFile(wb, `Laporan_Keuangan_GetOnTheAngkot_${dateStamp}.xlsx`);
+            showToast('File Excel berhasil diunduh!');
+        }
