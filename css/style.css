@@ -1,0 +1,42 @@
+body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; color: #171717; }
+        .font-pop { font-family: 'Fredoka', cursive, sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .neo-border { border: 3px solid #171717; }
+        .neo-shadow { box-shadow: 4px 4px 0px #171717; }
+        .neo-shadow-sm { box-shadow: 2px 2px 0px #171717; }
+        .neo-shadow-lg { box-shadow: 6px 6px 0px #171717; }
+        
+        .neo-button {
+            transition: all 0.15s ease;
+        }
+        .neo-button:active {
+            transform: translate(2px, 2px);
+            box-shadow: 1px 1px 0px #171717 !important;
+        }
+
+
+/* Cetak struk POS pada printer thermal 80 mm */
+@media print {
+    body * { visibility: hidden !important; }
+    #receipt-printable-area, #receipt-printable-area * { visibility: visible !important; }
+    #receipt-printable-area {
+        position: absolute !important; left: 0 !important; top: 0 !important;
+        width: 72mm !important; margin: 0 !important; padding: 3mm !important;
+        border: 0 !important; box-shadow: none !important; color: #000 !important;
+        background: #fff !important;
+    }
+    #receipt-modal {
+        position: absolute !important; inset: 0 !important; display: block !important;
+        background: #fff !important; padding: 0 !important;
+    }
+    #receipt-modal > div {
+        width: 80mm !important; max-width: 80mm !important; padding: 0 !important;
+        border: 0 !important; box-shadow: none !important;
+    }
+    #receipt-modal button { display: none !important; }
+    @page { size: 80mm auto; margin: 0; }
+}
