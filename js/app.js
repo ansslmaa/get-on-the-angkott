@@ -1528,91 +1528,139 @@ function clearCart() {
 
             const wb = XLSX.utils.book_new();
 
-            // 1. SHEET RINGKASAN KEUANGAN
-            const totalIncome = historyLogs.reduce((s, h) => s + Number(h.amount || 0), 0);
-            const cashTotal = historyLogs.filter(h => h.method === 'CASH').reduce((s, h) => s + Number(h.amount || 0), 0);
-            const qrisTotal = historyLogs.filter(h => h.method === 'QRIS').reduce((s, h) => s + Number(h.amount || 0), 0);
-            const posTotal = historyLogs.filter(h => (h.type || '').includes('POS')).reduce((s, h) => s + Number(h.amount || 0), 0);
-            const poTotal = totalIncome - posTotal;
+            // Helper untuk mengambil daftar kategori & rincian menu (baik dari POS maupun Pre-Order)
+            function getTransactionDetails(h) {
+                let itemList = [];
 
-            const summaryData = [
-                ['LAPORAN KEUANGAN — GET ON THE ANGKOT'],
-                ['Tanggal Cetak', new Date().toLocaleString('id-ID')],
+                if (h.items && h.items.length > 0) {
+                    itemList = h.items;
+                } else if (h.orderId) {
+                    const relatedPo = preOrders.find(po => po.id === h.orderId);
+                    if (relatedPo && relatedPo.items) {
+                        itemList = relatedPo.items.map(i => ({
+                            productId: i.productId,
+                            name: i.name,
+                            qty: i.qtyTotal
+                        }));
+                    }
+                }
+
+                if (itemList.length === 0) {
+                    return {
+                        categories: h.type || '-',
+                        menus: '-'
+                    };
+                }
+
+                const categorySet = new Set();
+                const menuStrings = itemList.map(item => {
+                    const prod = products.find(p => p.id === item.productId || p.name === item.name);
+                    if (prod && prod.category) {
+                        categorySet.add(prod.category);
+                    }
+                    return `${item.name} (${item.qty}x)`;
+                });
+
+                return {
+                    categories: categorySet.size > 0 ? Array.from(categorySet).join(', ') : 'Umum',
+                    menus: menuStrings.join(', ')
+                };
+            }
+
+            // Susun baris laporan dalam 1 sheet utama
+            const rows = [
+                ['LAPORAN RIWAYAT TRANSAKSI & PENDAPATAN — GET ON THE ANGKOT'],
+                ['Dicetak pada: ' + new Date().toLocaleString('id-ID')],
                 [''],
-                ['Keterangan', 'Nilai (Rp)'],
-                ['Total Pemasukan Keseluruhan', totalIncome],
-                ['Total Pemasukan CASH (Tunai)', cashTotal],
-                ['Total Pemasukan QRIS', qrisTotal],
-                ['Pemasukan Kasir Langsung (POS)', posTotal],
-                ['Pemasukan Pre-Order (DP & Pelunasan)', poTotal],
-                ['Total Jumlah Transaksi', historyLogs.length]
+                [
+                    'No',
+                    'Waktu Transaksi',
+                    'Nama Pelanggan',
+                    'Kategori Makanan',
+                    'Menu yang Dipesan',
+                    'Metode Pembayaran',
+                    'Nominal (Rp)'
+                ]
             ];
-            const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
-            wsSummary['!cols'] = [{ wch: 38 }, { wch: 20 }];
-            XLSX.utils.book_append_sheet(wb, wsSummary, 'Ringkasan Keuangan');
 
-            // 2. SHEET RIWAYAT TRANSAKSI
-            const historyRows = historyLogs.map((h, idx) => ({
-                'No': idx + 1,
-                'Waktu Transaksi': new Date(h.date).toLocaleString('id-ID'),
-                'ID Transaksi': h.id,
-                'Nama Pelanggan': h.customer,
-                'Kategori Pembayaran': h.type,
-                'Rincian Produk': (h.items && h.items.length > 0)
-                    ? h.items.map(i => `${i.name} (${i.qty}x)`).join(', ')
-                    : (h.orderId || '-'),
-                'Metode Bayar': h.method,
-                'Nominal Masuk (Rp)': Number(h.amount || 0)
-            }));
-            const wsHistory = XLSX.utils.json_to_sheet(historyRows);
-            wsHistory['!cols'] = [
-                { wch: 5 }, { wch: 22 }, { wch: 18 }, { wch: 22 },
-                { wch: 25 }, { wch: 35 }, { wch: 14 }, { wch: 20 }
+            // Urutkan transaksi dari yang paling awal ke terbaru agar kronologis rapi
+            const sortedLogs = [...historyLogs].reverse();
+
+            sortedLogs.forEach((h, idx) => {
+                const details = getTransactionDetails(h);
+                rows.push([
+                    idx + 1,
+                    new Date(h.date).toLocaleString('id-ID'),
+                    h.customer || 'Pelanggan Umum',
+                    details.categories,
+                    details.menus,
+                    (h.method || '').toUpperCase(),
+                    Number(h.amount || 0)
+                ]);
+            });
+
+            const firstDataRow = 5;
+            const lastDataRow = 4 + sortedLogs.length;
+
+            const cashTotal = sortedLogs
+                .filter(h => (h.method || '').toUpperCase() === 'CASH')
+                .reduce((sum, h) => sum + Number(h.amount || 0), 0);
+
+            const qrisTotal = sortedLogs
+                .filter(h => (h.method || '').toUpperCase() === 'QRIS')
+                .reduce((sum, h) => sum + Number(h.amount || 0), 0);
+
+            const grandTotal = cashTotal + qrisTotal;
+
+            // Baris kosong pemisah sebelum ringkasan total
+            rows.push(['']);
+
+            if (sortedLogs.length > 0) {
+                rows.push([
+                    '', '', '', '', '',
+                    'TOTAL PENDAPATAN CASH (TUNAI)',
+                    { t: 'n', v: cashTotal, f: `SUMIF(F${firstDataRow}:F${lastDataRow},"CASH",G${firstDataRow}:G${lastDataRow})` }
+                ]);
+                rows.push([
+                    '', '', '', '', '',
+                    'TOTAL PENDAPATAN QRIS',
+                    { t: 'n', v: qrisTotal, f: `SUMIF(F${firstDataRow}:F${lastDataRow},"QRIS",G${firstDataRow}:G${lastDataRow})` }
+                ]);
+                rows.push([
+                    '', '', '', '', '',
+                    'TOTAL PENDAPATAN KESELURUHAN',
+                    { t: 'n', v: grandTotal, f: `SUM(G${lastDataRow + 2}:G${lastDataRow + 3})` }
+                ]);
+            } else {
+                rows.push(['', '', '', '', '', 'TOTAL PENDAPATAN CASH (TUNAI)', 0]);
+                rows.push(['', '', '', '', '', 'TOTAL PENDAPATAN QRIS', 0]);
+                rows.push(['', '', '', '', '', 'TOTAL PENDAPATAN KESELURUHAN', 0]);
+            }
+
+            const ws = XLSX.utils.aoa_to_sheet(rows);
+
+            // Atur lebar setiap kolom agar rapi dan tidak terpotong
+            ws['!cols'] = [
+                { wch: 6 },   // No
+                { wch: 22 },  // Waktu Transaksi
+                { wch: 22 },  // Nama Pelanggan
+                { wch: 22 },  // Kategori Makanan
+                { wch: 38 },  // Menu yang Dipesan
+                { wch: 32 },  // Metode Pembayaran & Label Total
+                { wch: 18 }   // Nominal (Rp)
             ];
-            XLSX.utils.book_append_sheet(wb, wsHistory, 'Riwayat Transaksi');
 
-            // 3. SHEET DATA PRE-ORDER
-            const poRows = preOrders.map((po, idx) => ({
-                'No': idx + 1,
-                'ID PO': po.id,
-                'Nama Pelanggan': po.customerName,
-                'No. HP / WA': po.phone || '-',
-                'Tanggal Ambil': po.pickupDate,
-                'Pesanan': po.items.map(i => `${i.name} (${i.qtyPicked}/${i.qtyTotal})`).join(', '),
-                'Total Tagihan (Rp)': Number(po.totalAmount || 0),
-                'Sudah Dibayar (Rp)': Number(po.totalPaid || 0),
-                'Sisa Tagihan (Rp)': Number(po.balanceRemaining || 0),
-                'Status Bayar': po.paymentStatus,
-                'Status Ambil': po.pickupStatus
-            }));
-            const wsPo = XLSX.utils.json_to_sheet(poRows);
-            wsPo['!cols'] = [
-                { wch: 5 }, { wch: 14 }, { wch: 22 }, { wch: 16 }, { wch: 15 },
-                { wch: 35 }, { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 15 }, { wch: 18 }
-            ];
-            XLSX.utils.book_append_sheet(wb, wsPo, 'Data Pre-Order');
+            // Format angka ribuan pada seluruh kolom Nominal (kolom G)
+            for (let r = firstDataRow; r <= lastDataRow + 4; r++) {
+                const cellRef = 'G' + r;
+                if (ws[cellRef] && typeof ws[cellRef].v === 'number') {
+                    ws[cellRef].z = '#,##0';
+                }
+            }
 
-            // 4. SHEET STOK & PENJUALAN PRODUK
-            const prodRows = products.map((p, idx) => ({
-                'No': idx + 1,
-                'Nama Produk': p.name,
-                'Kategori': p.category || 'Umum',
-                'Harga Satuan (Rp)': Number(p.price || 0),
-                'Sisa Stok Fisik': Number(p.stock || 0),
-                'Dialokasikan PO': Number(p.allocated || 0),
-                'Stok Bebas': Math.max(0, Number(p.stock || 0) - Number(p.allocated || 0)),
-                'Total Terjual (pcs)': Number(p.sold || 0),
-                'Estimasi Omzet Produk (Rp)': Number(p.price || 0) * Number(p.sold || 0)
-            }));
-            const wsProd = XLSX.utils.json_to_sheet(prodRows);
-            wsProd['!cols'] = [
-                { wch: 5 }, { wch: 24 }, { wch: 15 }, { wch: 18 },
-                { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 18 }, { wch: 24 }
-            ];
-            XLSX.utils.book_append_sheet(wb, wsProd, 'Stok & Produk');
+            XLSX.utils.book_append_sheet(wb, ws, 'Laporan Keuangan');
 
-            // Simpan & unduh otomatis file Excel
             const dateStamp = new Date().toISOString().split('T')[0];
             XLSX.writeFile(wb, `Laporan_Keuangan_GetOnTheAngkot_${dateStamp}.xlsx`);
-            showToast('File Excel berhasil diunduh!');
+            showToast('Laporan Excel berhasil diunduh!');
         }
