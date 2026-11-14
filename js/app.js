@@ -131,6 +131,11 @@ if (mochiAdded) {
         let activePoForPayment = null;
         let activePoForPickup = null;
         let editingPoId = null;
+        let currentQrisProof = {
+    pos: null,
+    po: null,
+    'po-pay': null
+};
 
         // ALLOCATIONS & STATE PERSISTENCE
         function syncAllocations() {
@@ -524,6 +529,10 @@ function clearCart() {
                 }
                 change = cashPaid - total;
             } else if (posPaymentMethod === 'QRIS') {
+            if (!currentQrisProof.pos) {
+    showToast('Harap foto bukti pembayaran QRIS terlebih dahulu!', 'fa-camera');
+    return;
+}
                 if (!confirm(`Pastikan pembayaran QRIS sebesar ${formatRp(total)} dari ${custName} sudah benar-benar diterima. Lanjutkan?`)) return;
             } else {
                 showToast('Pilih metode pembayaran terlebih dahulu!', 'fa-circle-exclamation');
@@ -556,8 +565,14 @@ function clearCart() {
             historyLogs.unshift({
                 id: txId, date: transactionDate.toISOString(), orderId: txId,
                 customer: custName.toUpperCase(), type: 'Pembelian Langsung (POS)',
-                method: posPaymentMethod, amount: total, items: purchasedItems
+                method: posPaymentMethod, amount: total, items: purchasedItems,
+                proofImage: posPaymentMethod === 'QRIS' ? currentQrisProof.pos : null
             });
+            currentQrisProof.pos = null;
+const posPrev = document.getElementById('pos-qris-proof-preview');
+const posInp = document.getElementById('pos-qris-proof-input');
+if (posPrev) posPrev.classList.add('hidden');
+if (posInp) posInp.value = '';
 
             saveState();
 
@@ -662,9 +677,12 @@ function clearCart() {
                         <div class="p-4 border-b-2 border-slate-200 last:border-b-0 hover:bg-slate-50 flex flex-col md:flex-row items-start justify-between gap-4">
                             <div class="flex-1">
                                 <div class="flex flex-wrap items-center gap-2">
-                                    <h4 class="font-pop text-lg text-slate-900 font-bold ${isFullyPicked ? 'line-through text-slate-400' : ''}">
-                                        ${po.customerName}
-                                    </h4>
+                                   ${(() => {
+    const qrisTx = historyLogs.find(h => h.orderId === po.id && h.method === 'QRIS' && h.proofImage);
+    return qrisTx
+        ? `<button onclick="openQrisProofViewer('${qrisTx.id}')" class="text-left text-brand-blue underline hover:text-blue-800" title="Klik untuk lihat bukti QRIS">${po.customerName} <i class="fa-solid fa-camera text-xs ml-1"></i></button>`
+        : po.customerName;
+})()}
                                     ${po.phone ? `<span class="text-xs text-slate-500 font-semibold"><i class="fa-brands fa-whatsapp text-green-600"></i> ${po.phone}</span>` : ''}
                                     
                                     <!-- Payment Status Badge -->
@@ -781,7 +799,16 @@ function clearCart() {
                 `;
                 selector.appendChild(row);
             });
-
+togglePoQrisProof();
+const existingPoTx = historyLogs.find(h => h.orderId === poId && h.method === 'QRIS' && h.proofImage);
+if (existingPoTx) {
+    currentQrisProof.po = existingPoTx.proofImage;
+    document.getElementById('po-qris-proof-img').src = existingPoTx.proofImage;
+    document.getElementById('po-qris-proof-preview').classList.remove('hidden');
+} else {
+    currentQrisProof.po = null;
+    document.getElementById('po-qris-proof-preview').classList.add('hidden');
+}
             calculatePoBalance();
             document.getElementById('po-modal').classList.remove('hidden');
         }
@@ -830,7 +857,10 @@ function clearCart() {
                 showToast('Tanggal pengambilan tidak boleh sebelum tanggal pemesanan!', 'fa-circle-exclamation');
                 return;
             }
-
+if (dp > 0 && dpMethod === 'QRIS' && !currentQrisProof.po) {
+    showToast('Harap foto bukti pembayaran QRIS terlebih dahulu!', 'fa-camera');
+    return;
+}
             const existingPo = editingPoId ? preOrders.find(p => p.id === editingPoId) : null;
             const items = [];
             let total = 0;
@@ -924,7 +954,8 @@ function clearCart() {
                         date: (existingPo.paymentHistory && existingPo.paymentHistory[0]) ? existingPo.paymentHistory[0].date : new Date().toISOString(),
                         amount: dp,
                         method: dpMethod,
-                        remark: payTypeLabel
+                        remark: payTypeLabel,
+                        proofImage: dpMethod === 'QRIS' ? currentQrisProof.po : null
                     }];
                 }
 
@@ -938,10 +969,12 @@ function clearCart() {
                         customer: existingPo.customerName,
                         type: payTypeLabel,
                         method: dpMethod,
-                        amount: dp
+                        amount: dp,
+                        proofImage: dpMethod === 'QRIS' ? currentQrisProof.po : null
                     });
                 }
-
+                currentQrisProof.po = null;
+                
                 syncAllocations();
                 closePoModal();
                 renderPoList();
@@ -986,7 +1019,8 @@ function clearCart() {
                     date: new Date().toISOString(),
                     amount: dp,
                     method: dpMethod,
-                    remark: dp >= total ? 'Pembayaran Lunas Awal' : 'Pembayaran DP'
+                    remark: dp >= total ? 'Pembayaran Lunas Awal' : 'Pembayaran DP',
+                    proofImage: dpMethod === 'QRIS' ? currentQrisProof.po : null
                 }] : []
             };
 
@@ -1000,10 +1034,11 @@ function clearCart() {
                     customer: name.toUpperCase(),
                     type: dp >= total ? 'Pembayaran Lunas PO' : 'DP Pre-Order',
                     method: dpMethod,
-                    amount: dp
+                    amount: dp,
+                    proofImage: dpMethod === 'QRIS' ? currentQrisProof.po : null
                 });
             }
-
+            currentQrisProof.po = null;
             syncAllocations();
             document.getElementById('po-date-filter').value = '';
             document.getElementById('po-payment-filter').value = '';
@@ -1072,6 +1107,10 @@ function clearCart() {
             }
 
             if (method === 'QRIS') {
+                if (!currentQrisProof['po-pay']) {
+    showToast('Harap foto bukti pelunasan QRIS terlebih dahulu!', 'fa-camera');
+    return;
+}
                 if (!confirm(`Konfirmasi penerimaan pembayaran QRIS sebesar ${formatRp(amount)}?`)) {
                     return;
                 }
@@ -1093,7 +1132,8 @@ function clearCart() {
                 date: new Date().toISOString(),
                 amount: amount,
                 method: method,
-                remark: remark
+                remark: remark,
+                proofImage: method === 'QRIS' ? currentQrisProof['po-pay'] : null
             });
 
             // Log Income immediately
@@ -1104,9 +1144,14 @@ function clearCart() {
                 customer: po.customerName,
                 type: remark,
                 method: method,
-                amount: amount
+                amount: amount,
+                proofImage: method === 'QRIS' ? currentQrisProof['po-pay'] : null
             });
-
+currentQrisProof['po-pay'] = null;
+const poPayPrev = document.getElementById('po-pay-qris-proof-preview');
+const poPayInp = document.getElementById('po-pay-qris-proof-input');
+if (poPayPrev) poPayPrev.classList.add('hidden');
+if (poPayInp) poPayInp.value = '';
             saveState();
             closePoPayModal();
             renderPoList();
@@ -1273,7 +1318,11 @@ function clearCart() {
                     <tr class="hover:bg-slate-50 border-b text-xs">
                         <td class="p-3 font-semibold text-slate-600">${new Date(h.date).toLocaleString('id-ID')}</td>
                         <td class="p-3 font-mono font-bold text-slate-800">${h.id}</td>
-                        <td class="p-3 font-bold text-slate-900">${h.customer}</td>
+                        <td class="p-3 font-bold text-slate-900">
+    ${(h.method === 'QRIS' && h.proofImage)
+        ? `<button onclick="openQrisProofViewer('${h.id}')" class="text-left font-bold text-brand-blue underline hover:text-blue-800 inline-flex items-center gap-1" title="Klik untuk lihat foto bukti QRIS"><i class="fa-solid fa-camera text-xs"></i> ${h.customer}</button>`
+        : h.customer}
+</td>
                         <td class="p-3 font-semibold text-slate-700">${h.type}</td>
                         <td class="p-3 text-slate-600">${itemsText}</td>
                         <td class="p-3">
@@ -1754,3 +1803,62 @@ function clearCart() {
             XLSX.writeFile(wb, `Laporan_Keuangan_GetOnTheAngkot_${dateStamp}.xlsx`);
             showToast('Laporan Excel berhasil diunduh!');
         }
+        // Kompres foto dari kamera HP/tablet otomatis agar ringan disimpan
+function handleQrisProofUpload(event, context) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const maxDim = 900;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height && width > maxDim) {
+                height *= maxDim / width;
+                width = maxDim;
+            } else if (height > maxDim) {
+                width *= maxDim / height;
+                height = maxDim;
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.72);
+            currentQrisProof[context] = compressedDataUrl;
+
+            document.getElementById(`${context}-qris-proof-img`).src = compressedDataUrl;
+            document.getElementById(`${context}-qris-proof-preview`).classList.remove('hidden');
+            showToast('Foto bukti QRIS berhasil diambil!');
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+function togglePoQrisProof() {
+    const method = document.getElementById('po-dp-method').value;
+    const box = document.getElementById('po-qris-proof-box');
+    if (box) {
+        if (method === 'QRIS') box.classList.remove('hidden');
+        else box.classList.add('hidden');
+    }
+}
+
+function openQrisProofViewer(txId) {
+    const tx = historyLogs.find(h => h.id === txId);
+    if (!tx || !tx.proofImage) {
+        showToast('Belum ada foto bukti QRIS pada transaksi ini.', 'fa-circle-exclamation');
+        return;
+    }
+    document.getElementById('proof-viewer-customer').innerText = tx.customer || 'PELANGGAN';
+    document.getElementById('proof-viewer-meta').innerText = `${tx.type} • ${formatRp(tx.amount)} • ${new Date(tx.date).toLocaleString('id-ID')}`;
+    document.getElementById('proof-viewer-img').src = tx.proofImage;
+    document.getElementById('qris-proof-viewer-modal').classList.remove('hidden');
+}
