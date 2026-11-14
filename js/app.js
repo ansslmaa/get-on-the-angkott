@@ -757,7 +757,8 @@ if (posInp) posInp.value = '';
         }
 function openPoModal() {
             editingPoId = null;
-            document.getElementById('po-modal-title').innerText = 'Buat Pesanan PO Baru';
+           const poModalTitle = document.getElementById('po-modal-title');
+if (poModalTitle) poModalTitle.innerText = 'Buat Pesanan PO Baru';
             document.getElementById('po-input-name').value = '';
             document.getElementById('po-input-phone').value = '';
             document.getElementById('po-input-order-date').value = new Date().toISOString().split('T')[0];
