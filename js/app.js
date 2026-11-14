@@ -755,7 +755,47 @@ if (posInp) posInp.value = '';
                 container.appendChild(groupCard);
             });
         }
+function openPoModal() {
+            editingPoId = null;
+            document.getElementById('po-modal-title').innerText = 'Buat Pesanan PO Baru';
+            document.getElementById('po-input-name').value = '';
+            document.getElementById('po-input-phone').value = '';
+            document.getElementById('po-input-order-date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('po-input-pickup-date').value = '';
+            document.getElementById('po-input-dp').disabled = false;
+            document.getElementById('po-dp-method').disabled = false;
+            document.getElementById('po-input-dp').value = 0;
+            document.getElementById('po-dp-method').value = 'CASH';
 
+            // Reset kamera bukti QRIS PO
+            currentQrisProof.po = null;
+            const poQrisBox = document.getElementById('po-qris-proof-box');
+            const poQrisPrev = document.getElementById('po-qris-proof-preview');
+            const poQrisInp = document.getElementById('po-qris-proof-input');
+            if (poQrisBox) poQrisBox.classList.add('hidden');
+            if (poQrisPrev) poQrisPrev.classList.add('hidden');
+            if (poQrisInp) poQrisInp.value = '';
+
+            // Render daftar item produk PO dengan qty 0
+            const selector = document.getElementById('po-items-selector');
+            selector.innerHTML = '';
+            products.forEach(p => {
+                const avail = Math.max(0, Number(p.stock) - Number(p.allocated || 0));
+                const row = document.createElement('div');
+                row.className = 'flex items-center justify-between bg-slate-50 p-2 rounded border';
+                row.innerHTML = `
+                    <div>
+                        <p class="font-bold text-xs text-slate-800">${p.name}</p>
+                        <p class="text-[11px] text-slate-500">${formatRp(p.price)} • Sisa: ${avail}</p>
+                    </div>
+                    <input type="number" min="0" max="${avail}" value="0" data-id="${p.id}" oninput="calculatePoBalance()" class="po-item-qty w-16 border-2 border-black rounded px-2 py-1 text-center font-bold text-xs">
+                `;
+                selector.appendChild(row);
+            });
+
+            calculatePoBalance();
+            document.getElementById('po-modal').classList.remove('hidden');
+        }
        function openEditPoModal(poId) {
             const po = preOrders.find(p => p.id === poId);
             if (!po) return;
