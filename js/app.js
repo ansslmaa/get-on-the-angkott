@@ -738,34 +738,45 @@ function clearCart() {
             });
         }
 
-       function openPoModal() {
-            editingPoId = null;
-            document.getElementById('po-input-name').value = '';
-            document.getElementById('po-input-phone').value = '';
-            document.getElementById('po-input-dp').value = '';
+       function openEditPoModal(poId) {
+            const po = preOrders.find(p => p.id === poId);
+            if (!po) return;
+
+            editingPoId = poId;
+            document.getElementById('po-input-name').value = po.customerName;
+            document.getElementById('po-input-phone').value = po.phone || '';
+            document.getElementById('po-input-order-date').value = po.orderDate;
+            document.getElementById('po-input-pickup-date').value = po.pickupDate;
+
+            // Buka kunci input pembayaran agar DP / Pelunasan & Metode Bayar bisa diedit
             document.getElementById('po-input-dp').disabled = false;
             document.getElementById('po-dp-method').disabled = false;
+            document.getElementById('po-input-dp').value = po.totalPaid || 0;
 
-            const now = new Date();
-            const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-
-            document.getElementById('po-input-order-date').value = today;
-            document.getElementById('po-input-pickup-date').value = today;
+            if (po.paymentHistory && po.paymentHistory.length > 0) {
+                document.getElementById('po-dp-method').value = po.paymentHistory[0].method || 'CASH';
+            } else {
+                document.getElementById('po-dp-method').value = 'CASH';
+            }
 
             const selector = document.getElementById('po-product-selector');
             selector.innerHTML = '';
 
             products.forEach(p => {
-                const available = p.stock - p.allocated;
+                const existingItem = po.items.find(i => i.productId === p.id);
+                const currentQty = existingItem ? existingItem.qtyTotal : 0;
+                const minQty = existingItem ? existingItem.qtyPicked : 0;
+                const available = (p.stock - p.allocated) + (currentQty - minQty);
+
                 const row = document.createElement('div');
                 row.className = "flex items-center justify-between p-2 bg-slate-50 border border-slate-300 rounded-lg text-xs";
                 row.innerHTML = `
                     <div>
                         <span class="font-bold text-slate-900">${p.name}</span>
-                        <span class="text-[11px] text-slate-500 block">${formatRp(p.price)} (Tersedia: ${available})</span>
+                        <span class="text-[11px] text-slate-500 block">${formatRp(p.price)} (Maks: ${available}${minQty > 0 ? `, Sudah diambil: ${minQty}` : ''})</span>
                     </div>
                     <div class="flex items-center gap-2">
-                        <input type="number" min="0" max="${available}" data-id="${p.id}" data-price="${p.price}" value="0" oninput="calculatePoBalance()" class="po-item-qty w-16 p-1 border-2 border-black rounded text-center font-bold">
+                        <input type="number" min="${minQty}" max="${available}" data-id="${p.id}" data-price="${p.price}" value="${currentQty}" oninput="calculatePoBalance()" class="po-item-qty w-16 p-1 border-2 border-black rounded text-center font-bold">
                     </div>
                 `;
                 selector.appendChild(row);
@@ -916,16 +927,27 @@ function clearCart() {
 
             // MODE EDIT PO YANG SUDAH ADA
             if (existingPo) {
+                if (dp < 0) {
+                    showToast('Nominal pembayaran tidak boleh negatif!', 'fa-circle-exclamation');
+                    return;
+                }
+
+                if (dp > total) {
+                    showToast('Nominal pembayaran tidak boleh melebihi total pesanan!', 'fa-circle-exclamation');
+                    return;
+                }
+
                 existingPo.customerName = name.toUpperCase();
                 existingPo.phone = phone;
                 existingPo.orderDate = orderDate;
                 existingPo.pickupDate = pickupDate;
                 existingPo.items = items;
                 existingPo.totalAmount = total;
-                existingPo.balanceRemaining = Math.max(0, total - existingPo.totalPaid);
+                existingPo.totalPaid = dp;
+                existingPo.balanceRemaining = Math.max(0, total - dp);
 
-                if (existingPo.totalPaid === 0) existingPo.paymentStatus = 'Belum Bayar';
-                else if (existingPo.totalPaid < total) existingPo.paymentStatus = 'Sudah DP';
+                if (dp === 0) existingPo.paymentStatus = 'Belum Bayar';
+                else if (dp < total) existingPo.paymentStatus = 'Sudah DP';
                 else existingPo.paymentStatus = 'Lunas';
 
                 const totalQty = items.reduce((s, i) => s + i.qtyTotal, 0);
@@ -934,18 +956,42 @@ function clearCart() {
                 else if (totalPicked < totalQty) existingPo.pickupStatus = 'Sebagian Diambil';
                 else existingPo.pickupStatus = 'Selesai';
 
-                // Perbarui juga nama pelanggan di riwayat transaksi jika sudah pernah bayar
-                historyLogs.forEach(h => {
-                    if (h.orderId === existingPo.id) {
-                        h.customer = existingPo.customerName;
-                    }
-                });
+                const payTypeLabel = dp >= total ? 'Pembayaran Lunas PO' : 'DP Pre-Order';
+
+                // Sinkronkan Log Pembayaran di dalam data PO
+                if (dp === 0) {
+                    existingPo.paymentHistory = [];
+                } else {
+                    existingPo.paymentHistory = [{
+                        id: (existingPo.paymentHistory && existingPo.paymentHistory[0]) ? existingPo.paymentHistory[0].id : 'PAY-' + Date.now().toString().slice(-6),
+                        date: (existingPo.paymentHistory && existingPo.paymentHistory[0]) ? existingPo.paymentHistory[0].date : new Date().toISOString(),
+                        amount: dp,
+                        method: dpMethod,
+                        remark: payTypeLabel
+                    }];
+                }
+
+                // Sinkronkan ke Riwayat Transaksi (historyLogs) agar Dashboard & Excel tetap akurat
+                historyLogs = historyLogs.filter(h => h.orderId !== existingPo.id);
+                if (dp > 0) {
+                    historyLogs.unshift({
+                        id: 'TX-' + Math.floor(100000 + Math.random() * 900000),
+                        date: new Date().toISOString(),
+                        orderId: existingPo.id,
+                        customer: existingPo.customerName,
+                        type: payTypeLabel,
+                        method: dpMethod,
+                        amount: dp
+                    });
+                }
 
                 syncAllocations();
                 closePoModal();
                 renderPoList();
                 renderDashboard();
-                showToast('Perubahan Pre-Order berhasil disimpan!');
+                renderHistoryTable();
+                renderIncomeStats();
+                showToast('Perubahan Pre-Order & Pembayaran berhasil disimpan!');
                 return;
             }
 
