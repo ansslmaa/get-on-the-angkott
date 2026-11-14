@@ -130,6 +130,7 @@ if (mochiAdded) {
         let posPaymentMethod = 'CASH';
         let activePoForPayment = null;
         let activePoForPickup = null;
+        let editingPoId = null;
 
         // ALLOCATIONS & STATE PERSISTENCE
         function syncAllocations() {
@@ -701,6 +702,9 @@ function clearCart() {
                                 <button onclick="openPoPickupModal('${po.id}')" class="px-3 py-1.5 bg-brand-yellow text-slate-900 font-pop font-bold text-xs rounded-lg neo-border neo-shadow-sm hover:bg-yellow-400 neo-button">
                                     <i class="fa-solid fa-list-check mr-1"></i> Checklist Barang
                                 </button>
+                                <button onclick="openEditPoModal('${po.id}')" class="px-3 py-1.5 bg-blue-100 text-blue-800 font-pop font-bold text-xs rounded-lg neo-border neo-shadow-sm hover:bg-blue-200 neo-button">
+    <i class="fa-solid fa-pen-to-square mr-1"></i> Edit PO
+</button>
                                 
                                 ${po.balanceRemaining > 0 ? `
                                     <button onclick="openPoPayModal('${po.id}')" class="px-3 py-1.5 bg-brand-green text-white font-pop font-bold text-xs rounded-lg neo-border neo-shadow-sm hover:bg-brand-darkGreen neo-button">
@@ -734,45 +738,90 @@ function clearCart() {
             });
         }
 
-        // CREATE NEW PO
        function openPoModal() {
-    document.getElementById('po-input-name').value = '';
-    document.getElementById('po-input-phone').value = '';
-    document.getElementById('po-input-dp').value = '';
+            editingPoId = null;
+            document.getElementById('po-input-name').value = '';
+            document.getElementById('po-input-phone').value = '';
+            document.getElementById('po-input-dp').value = '';
+            document.getElementById('po-input-dp').disabled = false;
+            document.getElementById('po-dp-method').disabled = false;
 
-    const now = new Date();
-    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            const now = new Date();
+            const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-    document.getElementById('po-input-order-date').value = today;
-    document.getElementById('po-input-pickup-date').value = today;
+            document.getElementById('po-input-order-date').value = today;
+            document.getElementById('po-input-pickup-date').value = today;
 
-    const selector = document.getElementById('po-product-selector');
-    selector.innerHTML = '';
+            const selector = document.getElementById('po-product-selector');
+            selector.innerHTML = '';
 
-    products.forEach(p => {
-        const available = p.stock - p.allocated;
+            products.forEach(p => {
+                const available = p.stock - p.allocated;
+                const row = document.createElement('div');
+                row.className = "flex items-center justify-between p-2 bg-slate-50 border border-slate-300 rounded-lg text-xs";
+                row.innerHTML = `
+                    <div>
+                        <span class="font-bold text-slate-900">${p.name}</span>
+                        <span class="text-[11px] text-slate-500 block">${formatRp(p.price)} (Tersedia: ${available})</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="number" min="0" max="${available}" data-id="${p.id}" data-price="${p.price}" value="0" oninput="calculatePoBalance()" class="po-item-qty w-16 p-1 border-2 border-black rounded text-center font-bold">
+                    </div>
+                `;
+                selector.appendChild(row);
+            });
 
-        const row = document.createElement('div');
-        row.className = "flex items-center justify-between p-2 bg-slate-50 border border-slate-300 rounded-lg text-xs";
+            calculatePoBalance();
+            document.getElementById('po-modal').classList.remove('hidden');
+        }
 
-        row.innerHTML = `
-            <div>
-                <span class="font-bold text-slate-900">${p.name}</span>
-                <span class="text-[11px] text-slate-500 block">${formatRp(p.price)} (Tersedia: ${available})</span>
-            </div>
-            <div class="flex items-center gap-2">
-                <input type="number" min="0" max="${available}" data-id="${p.id}" data-price="${p.price}" value="0" oninput="calculatePoBalance()" class="po-item-qty w-16 p-1 border-2 border-black rounded text-center font-bold">
-            </div>
-        `;
+        function openEditPoModal(poId) {
+            const po = preOrders.find(p => p.id === poId);
+            if (!po) return;
 
-        selector.appendChild(row);
-    });
+            editingPoId = poId;
+            document.getElementById('po-input-name').value = po.customerName;
+            document.getElementById('po-input-phone').value = po.phone || '';
+            document.getElementById('po-input-order-date').value = po.orderDate;
+            document.getElementById('po-input-pickup-date').value = po.pickupDate;
 
-    calculatePoBalance();
-    document.getElementById('po-modal').classList.remove('hidden');
-}
+            // Tampilkan nominal yang sudah dibayar sebelumnya (dikunci agar log riwayat bayar tetap akurat)
+            document.getElementById('po-input-dp').value = po.totalPaid || 0;
+            document.getElementById('po-input-dp').disabled = true;
+            document.getElementById('po-dp-method').disabled = true;
+
+            const selector = document.getElementById('po-product-selector');
+            selector.innerHTML = '';
+
+            products.forEach(p => {
+                const existingItem = po.items.find(i => i.productId === p.id);
+                const currentQty = existingItem ? existingItem.qtyTotal : 0;
+                const minQty = existingItem ? existingItem.qtyPicked : 0;
+                // Stok tersedia = stok bebas + jumlah yang sudah dialokasikan oleh PO ini sendiri
+                const available = (p.stock - p.allocated) + (currentQty - minQty);
+
+                const row = document.createElement('div');
+                row.className = "flex items-center justify-between p-2 bg-slate-50 border border-slate-300 rounded-lg text-xs";
+                row.innerHTML = `
+                    <div>
+                        <span class="font-bold text-slate-900">${p.name}</span>
+                        <span class="text-[11px] text-slate-500 block">${formatRp(p.price)} (Maks: ${available}${minQty > 0 ? `, Sudah diambil: ${minQty}` : ''})</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="number" min="${minQty}" max="${available}" data-id="${p.id}" data-price="${p.price}" value="${currentQty}" oninput="calculatePoBalance()" class="po-item-qty w-16 p-1 border-2 border-black rounded text-center font-bold">
+                    </div>
+                `;
+                selector.appendChild(row);
+            });
+
+            calculatePoBalance();
+            document.getElementById('po-modal').classList.remove('hidden');
+        }
 
         function closePoModal() {
+            editingPoId = null;
+            document.getElementById('po-input-dp').disabled = false;
+            document.getElementById('po-dp-method').disabled = false;
             document.getElementById('po-modal').classList.add('hidden');
         }
 
@@ -791,140 +840,178 @@ function clearCart() {
             document.getElementById('po-calc-balance').innerText = formatRp(remaining);
         }
 
-     function savePreOrder() {
-    const name = document.getElementById('po-input-name').value.trim();
-    const phone = document.getElementById('po-input-phone').value.trim();
-    const orderDate = document.getElementById('po-input-order-date').value;
-    const pickupDate = document.getElementById('po-input-pickup-date').value;
-    const dp = parseFloat(document.getElementById('po-input-dp').value) || 0;
-    const dpMethod = document.getElementById('po-dp-method').value;
+        function savePreOrder() {
+            const name = document.getElementById('po-input-name').value.trim();
+            const phone = document.getElementById('po-input-phone').value.trim();
+            const orderDate = document.getElementById('po-input-order-date').value;
+            const pickupDate = document.getElementById('po-input-pickup-date').value;
+            const dp = parseFloat(document.getElementById('po-input-dp').value) || 0;
+            const dpMethod = document.getElementById('po-dp-method').value;
 
-    if (!name) {
-        showToast('Nama pelanggan wajib diisi!', 'fa-circle-exclamation');
-        return;
-    }
+            if (!name) {
+                showToast('Nama pelanggan wajib diisi!', 'fa-circle-exclamation');
+                return;
+            }
 
-    if (!pickupDate) {
-        showToast('Tanggal pengambilan wajib diisi!', 'fa-circle-exclamation');
-        return;
-    }
+            if (!pickupDate) {
+                showToast('Tanggal pengambilan wajib diisi!', 'fa-circle-exclamation');
+                return;
+            }
 
-    if (pickupDate < orderDate) {
-        showToast('Tanggal pengambilan tidak boleh sebelum tanggal pemesanan!', 'fa-circle-exclamation');
-        return;
-    }
+            if (pickupDate < orderDate) {
+                showToast('Tanggal pengambilan tidak boleh sebelum tanggal pemesanan!', 'fa-circle-exclamation');
+                return;
+            }
 
-    const items = [];
-    let total = 0;
-    let stockError = false;
+            const existingPo = editingPoId ? preOrders.find(p => p.id === editingPoId) : null;
+            const items = [];
+            let total = 0;
+            let stockError = false;
 
-    document.querySelectorAll('.po-item-qty').forEach(input => {
-        const qty = parseInt(input.value) || 0;
+            document.querySelectorAll('.po-item-qty').forEach(input => {
+                const qty = parseInt(input.value) || 0;
 
-        if (qty > 0) {
-            const pId = input.getAttribute('data-id');
-            const prod = products.find(p => p.id === pId);
+                if (qty > 0) {
+                    const pId = input.getAttribute('data-id');
+                    const prod = products.find(p => p.id === pId);
 
-            if (prod) {
-                const available = Math.max(
-                    0,
-                    Number(prod.stock || 0) - Number(prod.allocated || 0)
-                );
+                    if (prod) {
+                        const prevItem = existingPo ? existingPo.items.find(i => i.productId === pId) : null;
+                        const prevQtyPicked = prevItem ? prevItem.qtyPicked : 0;
+                        const prevRemainingAlloc = prevItem ? (prevItem.qtyTotal - prevItem.qtyPicked) : 0;
 
-                if (qty > available) {
-                    showToast(`Stok ${prod.name} tidak cukup. Tersedia: ${available}`, 'fa-circle-exclamation');
-                    stockError = true;
-                    return;
+                        if (qty < prevQtyPicked) {
+                            showToast(`Jumlah ${prod.name} tidak boleh kurang dari yang sudah diambil (${prevQtyPicked})!`, 'fa-circle-exclamation');
+                            stockError = true;
+                            return;
+                        }
+
+                        const available = Math.max(0, Number(prod.stock || 0) - Number(prod.allocated || 0) + prevRemainingAlloc);
+
+                        if (qty > available) {
+                            showToast(`Stok ${prod.name} tidak cukup. Tersedia: ${available}`, 'fa-circle-exclamation');
+                            stockError = true;
+                            return;
+                        }
+
+                        items.push({
+                            productId: prod.id,
+                            name: prod.name,
+                            price: prod.price,
+                            qtyTotal: qty,
+                            qtyPicked: prevQtyPicked
+                        });
+
+                        total += prod.price * qty;
+                    }
                 }
+            });
 
-                items.push({
-                    productId: prod.id,
-                    name: prod.name,
-                    price: prod.price,
-                    qtyTotal: qty,
-                    qtyPicked: 0
+            if (stockError) return;
+
+            if (items.length === 0) {
+                showToast('Pilih minimal satu produk!', 'fa-circle-exclamation');
+                return;
+            }
+
+            // MODE EDIT PO YANG SUDAH ADA
+            if (existingPo) {
+                existingPo.customerName = name.toUpperCase();
+                existingPo.phone = phone;
+                existingPo.orderDate = orderDate;
+                existingPo.pickupDate = pickupDate;
+                existingPo.items = items;
+                existingPo.totalAmount = total;
+                existingPo.balanceRemaining = Math.max(0, total - existingPo.totalPaid);
+
+                if (existingPo.totalPaid === 0) existingPo.paymentStatus = 'Belum Bayar';
+                else if (existingPo.totalPaid < total) existingPo.paymentStatus = 'Sudah DP';
+                else existingPo.paymentStatus = 'Lunas';
+
+                const totalQty = items.reduce((s, i) => s + i.qtyTotal, 0);
+                const totalPicked = items.reduce((s, i) => s + i.qtyPicked, 0);
+                if (totalPicked === 0) existingPo.pickupStatus = 'Belum Diambil';
+                else if (totalPicked < totalQty) existingPo.pickupStatus = 'Sebagian Diambil';
+                else existingPo.pickupStatus = 'Selesai';
+
+                // Perbarui juga nama pelanggan di riwayat transaksi jika sudah pernah bayar
+                historyLogs.forEach(h => {
+                    if (h.orderId === existingPo.id) {
+                        h.customer = existingPo.customerName;
+                    }
                 });
 
-                total += prod.price * qty;
+                syncAllocations();
+                closePoModal();
+                renderPoList();
+                renderDashboard();
+                showToast('Perubahan Pre-Order berhasil disimpan!');
+                return;
             }
+
+            // MODE TAMBAH PO BARU
+            if (dp < 0) {
+                showToast('DP tidak boleh bernilai negatif!', 'fa-circle-exclamation');
+                return;
+            }
+
+            if (dp > total) {
+                showToast('DP tidak boleh melebihi total pesanan!', 'fa-circle-exclamation');
+                return;
+            }
+
+            const poId = 'PO-' + Date.now().toString().slice(-6);
+            const remaining = total - dp;
+            let paymentStatus = 'Belum Bayar';
+            if (dp > 0 && dp < total) paymentStatus = 'Sudah DP';
+            if (dp >= total) paymentStatus = 'Lunas';
+
+            const newPo = {
+                id: poId,
+                customerName: name.toUpperCase(),
+                phone: phone,
+                orderDate: orderDate,
+                pickupDate: pickupDate,
+                items: items,
+                totalAmount: total,
+                totalPaid: dp,
+                balanceRemaining: remaining,
+                paymentStatus: paymentStatus,
+                pickupStatus: 'Belum Diambil',
+                paymentHistory: dp > 0 ? [{
+                    id: 'PAY-' + Date.now().toString().slice(-6),
+                    date: new Date().toISOString(),
+                    amount: dp,
+                    method: dpMethod,
+                    remark: dp >= total ? 'Pembayaran Lunas Awal' : 'Pembayaran DP'
+                }] : []
+            };
+
+            preOrders.unshift(newPo);
+
+            if (dp > 0) {
+                historyLogs.unshift({
+                    id: 'TX-' + Math.floor(100000 + Math.random() * 900000),
+                    date: new Date().toISOString(),
+                    orderId: poId,
+                    customer: name.toUpperCase(),
+                    type: dp >= total ? 'Pembayaran Lunas PO' : 'DP Pre-Order',
+                    method: dpMethod,
+                    amount: dp
+                });
+            }
+
+            syncAllocations();
+            document.getElementById('po-date-filter').value = '';
+            document.getElementById('po-payment-filter').value = '';
+            document.getElementById('po-pickup-filter').value = '';
+            document.getElementById('po-search').value = '';
+
+            closePoModal();
+            renderPoList();
+            renderDashboard();
+            showToast('Pre-Order Berhasil Dibuat dan Disimpan!');
         }
-    });
-
-    if (stockError) return;
-
-    if (items.length === 0) {
-        showToast('Pilih minimal satu produk!', 'fa-circle-exclamation');
-        return;
-    }
-
-    if (dp < 0) {
-        showToast('DP tidak boleh bernilai negatif!', 'fa-circle-exclamation');
-        return;
-    }
-
-    if (dp > total) {
-        showToast('DP tidak boleh melebihi total pesanan!', 'fa-circle-exclamation');
-        return;
-    }
-
-    const poId = 'PO-' + Date.now().toString().slice(-6);
-    const remaining = total - dp;
-
-    let paymentStatus = 'Belum Bayar';
-
-    if (dp > 0 && dp < total) paymentStatus = 'Sudah DP';
-    if (dp >= total) paymentStatus = 'Lunas';
-
-    const newPo = {
-        id: poId,
-        customerName: name.toUpperCase(),
-        phone: phone,
-        orderDate: orderDate,
-        pickupDate: pickupDate,
-        items: items,
-        totalAmount: total,
-        totalPaid: dp,
-        balanceRemaining: remaining,
-        paymentStatus: paymentStatus,
-        pickupStatus: 'Belum Diambil',
-
-        paymentHistory: dp > 0 ? [{
-            id: 'PAY-' + Date.now().toString().slice(-6),
-            date: new Date().toISOString(),
-            amount: dp,
-            method: dpMethod,
-            remark: dp >= total ? 'Pembayaran Lunas Awal' : 'Pembayaran DP'
-        }] : []
-    };
-
-    preOrders.unshift(newPo);
-
-    if (dp > 0) {
-        historyLogs.unshift({
-            id: 'TX-' + Math.floor(100000 + Math.random() * 900000),
-            date: new Date().toISOString(),
-            orderId: poId,
-            customer: name.toUpperCase(),
-            type: dp >= total ? 'Pembayaran Lunas PO' : 'DP Pre-Order',
-            method: dpMethod,
-            amount: dp
-        });
-    }
-
-    syncAllocations();
-
-    // Reset filter agar pesanan baru langsung terlihat
-    document.getElementById('po-date-filter').value = '';
-    document.getElementById('po-payment-filter').value = '';
-    document.getElementById('po-pickup-filter').value = '';
-    document.getElementById('po-search').value = '';
-
-    closePoModal();
-    renderPoList();
-    renderDashboard();
-
-    showToast('Pre-Order Berhasil Dibuat dan Disimpan!');
-}
 
         function cancelPreOrder(poId) {
             if (!confirm('Batalkan pesanan PO ini? Alokasi stok produk akan dikembalikan.')) return;
