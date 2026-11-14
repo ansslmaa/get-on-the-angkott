@@ -786,49 +786,6 @@ function clearCart() {
             document.getElementById('po-modal').classList.remove('hidden');
         }
 
-        function openEditPoModal(poId) {
-            const po = preOrders.find(p => p.id === poId);
-            if (!po) return;
-
-            editingPoId = poId;
-            document.getElementById('po-input-name').value = po.customerName;
-            document.getElementById('po-input-phone').value = po.phone || '';
-            document.getElementById('po-input-order-date').value = po.orderDate;
-            document.getElementById('po-input-pickup-date').value = po.pickupDate;
-
-            // Tampilkan nominal yang sudah dibayar sebelumnya (dikunci agar log riwayat bayar tetap akurat)
-            document.getElementById('po-input-dp').value = po.totalPaid || 0;
-            document.getElementById('po-input-dp').disabled = true;
-            document.getElementById('po-dp-method').disabled = true;
-
-            const selector = document.getElementById('po-product-selector');
-            selector.innerHTML = '';
-
-            products.forEach(p => {
-                const existingItem = po.items.find(i => i.productId === p.id);
-                const currentQty = existingItem ? existingItem.qtyTotal : 0;
-                const minQty = existingItem ? existingItem.qtyPicked : 0;
-                // Stok tersedia = stok bebas + jumlah yang sudah dialokasikan oleh PO ini sendiri
-                const available = (p.stock - p.allocated) + (currentQty - minQty);
-
-                const row = document.createElement('div');
-                row.className = "flex items-center justify-between p-2 bg-slate-50 border border-slate-300 rounded-lg text-xs";
-                row.innerHTML = `
-                    <div>
-                        <span class="font-bold text-slate-900">${p.name}</span>
-                        <span class="text-[11px] text-slate-500 block">${formatRp(p.price)} (Maks: ${available}${minQty > 0 ? `, Sudah diambil: ${minQty}` : ''})</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <input type="number" min="${minQty}" max="${available}" data-id="${p.id}" data-price="${p.price}" value="${currentQty}" oninput="calculatePoBalance()" class="po-item-qty w-16 p-1 border-2 border-black rounded text-center font-bold">
-                    </div>
-                `;
-                selector.appendChild(row);
-            });
-
-            calculatePoBalance();
-            document.getElementById('po-modal').classList.remove('hidden');
-        }
-
         function closePoModal() {
             editingPoId = null;
             document.getElementById('po-input-dp').disabled = false;
