@@ -338,7 +338,7 @@
                     <input type="date" id="history-date-filter" onchange="renderHistoryTable()" class="px-3 py-1.5 border-2 border-black rounded-lg text-sm font-bold">
                     <select id="history-method-filter" onchange="renderHistoryTable()" class="px-3 py-1.5 border-2 border-black rounded-lg text-sm font-bold bg-white">
                         <option value="">Semua Metode</option>
-                        <option value="CASH">CASH</option>
+                        <option value="CASH">Cash</option>
                         <option value="QRIS">QRIS</option>
                     </select>
                     <input type="text" id="history-search" oninput="renderHistoryTable()" placeholder="Cari nama / ID..." class="px-3 py-1.5 border-2 border-black rounded-lg text-sm font-medium">
@@ -559,9 +559,10 @@
                     </div>
                     <div>
                         <label class="block text-xs font-bold uppercase mb-1">Metode Pembayaran DP</label>
-                            <select id="po-dp-method" onchange="togglePoQrisProof()" class="w-full p-2 border-2...
-                            <option value="CASH">CASH</option>
-                            <option value="QRIS">QRIS</option>
+                           <select id="po-dp-method" onchange="togglePoQrisProof()" class="w-full border-2 border-black rounded-lg px-3 py-2 text-xs font-bold bg-white">
+    <option value="Cash">Tunai (Cash)</option>
+    <option value="QRIS">QRIS</option>
+</select>
                         </select>
                     </div>
                 </div>
@@ -574,11 +575,11 @@
 
             <div id="po-qris-proof-box" class="hidden mt-3 p-3 bg-slate-50 border-2 border-dashed border-slate-400 rounded-xl text-center">
                                         <label class="block text-xs font-bold text-slate-700 mb-2">
-                                            <i class="fa-solid fa-camera mr-1 text-brand-blue"></i> FOTO BUKTI BAYAR QRIS
+                                           <i class="fa-solid fa-image mr-1 text-brand-blue"></i> UPLOAD BUKTI TRANSFER QRIS
                                         </label>
-                                        <input type="file" id="po-qris-proof-input" accept="image/*" capture="environment" onchange="handleQrisProofUpload(event, 'po')" class="hidden">
+                                        <input type="file" id="po-qris-proof-input" accept="image/*" class="hidden" onchange="handleQrisProofUpload(event, 'po')">
                                         <button type="button" onclick="document.getElementById('po-qris-proof-input').click()" class="w-full py-2 px-3 bg-brand-blue text-white font-bold text-xs rounded-lg border-2 border-black shadow-brutal-sm">
-                                            <i class="fa-solid fa-camera mr-1"></i> Foto Bukti QRIS Pelanggan
+                                            <i class="fa-solid fa-upload mr-1"></i> Pilih Foto Bukti dari Galeri / File
                                         </button>
                                         <div id="po-qris-proof-preview" class="hidden mt-2">
                                             <img id="po-qris-proof-img" class="max-h-36 mx-auto rounded-lg border border-black object-contain">
@@ -620,7 +621,7 @@
                 <div>
                     <label class="block text-xs font-bold uppercase mb-1">Metode Pembayaran</label>
                     <select id="popay-method-select" onchange="togglePoPayQrisDisplay()" class="w-full p-2 border-2 border-black rounded-lg font-bold">
-                        <option value="CASH">CASH / Tunai</option>
+                        <option value="Cashh">Cash / Tunai</option>
                         <option value="QRIS">QRIS</option>
                     </select>
                 </div>
@@ -631,12 +632,11 @@
                     <img id="popay-qris-img" src="" alt="QRIS" class="w-28 h-28 mx-auto border-2 border-black rounded-lg bg-white p-1 object-contain">
                     <div id="po-pay-qris-proof-box" class="mt-3 p-3 bg-white border-2 border-dashed border-slate-400 rounded-xl text-center">
                                         <label class="block text-xs font-bold text-slate-700 mb-2">
-                                            <i class="fa-solid fa-camera mr-1 text-brand-blue"></i> FOTO BUKTI PELUNASAN QRIS (WAJIB)
-                                        </label>
+                                            <i class="fa-solid fa-image mr-1 text-brand-blue"></i> UPLOAD BUKTI PELUNASAN QRIS
                                         <input type="file" id="po-pay-qris-proof-input" accept="image/*" capture="environment" onchange="handleQrisProofUpload(event, 'po-pay')" class="hidden">
-                                        <button type="button" onclick="document.getElementById('po-pay-qris-proof-input').click()" class="w-full py-2 px-3 bg-brand-blue text-white font-bold text-xs rounded-lg border-2 border-black shadow-brutal-sm">
+                                       <input type="file" id="po-pay-qris-proof-input" accept="image/*" class="hidden" onchange="handleQrisProofUpload(event, 'po-pay')">
                                             <i class="fa-solid fa-camera mr-1"></i> Foto Bukti Pelunasan QRIS
-                                        </button>
+                                       <i class="fa-solid fa-upload mr-1"></i> Pilih Foto Bukti dari Galeri / File
                                         <div id="po-pay-qris-proof-preview" class="hidden mt-2">
                                             <img id="po-pay-qris-proof-img" class="max-h-36 mx-auto rounded-lg border border-black object-contain">
                                             <span class="text-[11px] text-emerald-700 font-bold block mt-1"><i class="fa-solid fa-circle-check"></i> Bukti QRIS siap disimpan</span>
