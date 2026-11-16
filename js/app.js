@@ -126,7 +126,7 @@ if (mochiAdded) {
         ];
         let qrisImgUrl = localStorage.getItem('got_qris_url') || DEFAULT_QRIS;
 
-        let cart = [];
+        let cart = JSON.parse(localStorage.getItem('got_cart_v1') || '[]');
         let posPaymentMethod = 'CASH';
         let activePoForPayment = null;
         let activePoForPickup = null;
@@ -398,10 +398,13 @@ const qrisLogs = historyLogs.filter(h => (h.method || '').toUpperCase() === 'QRI
     renderCart();
 }
 
-        function renderCart() {
+       function renderCart() {
     const container = document.getElementById('cart-items');
 
     container.innerHTML = '';
+
+    // Simpan isi keranjang agar tidak hilang saat reload
+    localStorage.setItem('got_cart_v1', JSON.stringify(cart));
 
     let total = 0;
 
@@ -789,7 +792,7 @@ if (poModalTitle) poModalTitle.innerText = 'Buat Pesanan PO Baru';
                         <p class="font-bold text-xs text-slate-800">${p.name}</p>
                         <p class="text-[11px] text-slate-500">${formatRp(p.price)} • Sisa: ${avail}</p>
                     </div>
-                    <input type="number" min="0" max="${avail}" value="0" data-id="${p.id}" oninput="calculatePoBalance()" class="po-item-qty w-16 border-2 border-black rounded px-2 py-1 text-center font-bold text-xs">
+                    <input type="number" min="0" max="${avail}" value="0" data-id="${p.id}" data-price="${p.price}" oninput="calculatePoBalance()" class="po-item-qty w-16 border-2 border-black rounded px-2 py-1 text-center font-bold text-xs">
                 `;
                 selector.appendChild(row);
             });
@@ -861,20 +864,22 @@ if (existingPoTx) {
             document.getElementById('po-modal').classList.add('hidden');
         }
 
-        function calculatePoBalance() {
-            let total = 0;
-            document.querySelectorAll('.po-item-qty').forEach(input => {
-                const qty = parseInt(input.value) || 0;
-                const price = parseFloat(input.getAttribute('data-price')) || 0;
-                total += qty * price;
-            });
+       function calculatePoBalance() {
+    let total = 0;
 
-            const dp = parseFloat(document.getElementById('po-input-dp').value) || 0;
-            const remaining = Math.max(0, total - dp);
+    document.querySelectorAll('.po-item-qty').forEach(input => {
+        const qty = Math.max(0, Number(input.value) || 0);
+        const product = products.find(p => p.id === input.dataset.id);
+        const price = Number(input.dataset.price ?? product?.price ?? 0);
+        total += qty * price;
+    });
 
-            document.getElementById('po-calc-total').innerText = formatRp(total);
-            document.getElementById('po-calc-balance').innerText = formatRp(remaining);
-        }
+    const dp = Math.max(0, Number(document.getElementById('po-input-dp').value) || 0);
+    const remaining = Math.max(0, total - dp);
+
+    document.getElementById('po-calc-total').innerText = formatRp(total);
+    document.getElementById('po-calc-balance').innerText = formatRp(remaining);
+}
 
         function savePreOrder() {
             const name = document.getElementById('po-input-name').value.trim();
@@ -1628,6 +1633,7 @@ if (poPayInp) poPayInp.value = '';
 
     renderDashboard();
     setPosPaymentMethod('CASH');
+    renderCart();
 };
 // ================= 10. GENERATOR QRIS DINAMIS OTOMATIS =================
         let STATIC_QRIS_RAW = localStorage.getItem('got_qris_raw') || '';
