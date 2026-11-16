@@ -1903,3 +1903,8 @@ function openQrisProofViewer(txId) {
     document.getElementById('proof-viewer-img').src = tx.proofImage;
     document.getElementById('qris-proof-viewer-modal').classList.remove('hidden');
 }
+if (typeof savePo === 'undefined' && typeof submitPo === 'function') {
+    window.savePo = submitPo;
+} else if (typeof submitPo === 'undefined' && typeof savePo === 'function') {
+    window.submitPo = savePo;
+}
