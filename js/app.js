@@ -225,8 +225,8 @@ if (mochiAdded) {
             document.getElementById('dash-po-pending-pickup').innerText = preOrders.filter(p => p.pickupStatus !== 'Selesai').length;
 
             // Payment Methods breakdown
-            const cashLogs = historyLogs.filter(h => h.method === 'CASH');
-            const qrisLogs = historyLogs.filter(h => h.method === 'QRIS');
+            const cashLogs = historyLogs.filter(h => (h.method || '').toUpperCase() === 'CASH');
+const qrisLogs = historyLogs.filter(h => (h.method || '').toUpperCase() === 'QRIS');
 
             document.getElementById('dash-cash-income').innerText = formatRp(cashLogs.reduce((sum, h) => sum + h.amount, 0));
             document.getElementById('dash-cash-tx-count').innerText = `${cashLogs.length} Transaksi`;
@@ -766,7 +766,7 @@ if (poModalTitle) poModalTitle.innerText = 'Buat Pesanan PO Baru';
             document.getElementById('po-input-dp').disabled = false;
             document.getElementById('po-dp-method').disabled = false;
             document.getElementById('po-input-dp').value = 0;
-            document.getElementById('po-dp-method').value = 'CASH';
+            document.getElementById('po-dp-method').value = 'Cash';
 
             // Reset kamera bukti QRIS PO
             currentQrisProof.po = null;
@@ -778,7 +778,7 @@ if (poModalTitle) poModalTitle.innerText = 'Buat Pesanan PO Baru';
             if (poQrisInp) poQrisInp.value = '';
 
             // Render daftar item produk PO dengan qty 0
-            const selector = document.getElementById('po-items-selector');
+            const selector = document.getElementById('po-product-selector');
             selector.innerHTML = '';
             products.forEach(p => {
                 const avail = Math.max(0, Number(p.stock) - Number(p.allocated || 0));
@@ -813,9 +813,9 @@ if (poModalTitle) poModalTitle.innerText = 'Buat Pesanan PO Baru';
             document.getElementById('po-input-dp').value = po.totalPaid || 0;
 
             if (po.paymentHistory && po.paymentHistory.length > 0) {
-                document.getElementById('po-dp-method').value = po.paymentHistory[0].method || 'CASH';
+                document.getElementById('po-dp-method').value = po.paymentHistory[0].method || 'Cash';
             } else {
-                document.getElementById('po-dp-method').value = 'CASH';
+                document.getElementById('po-dp-method').value = 'Cash';
             }
 
             const selector = document.getElementById('po-product-selector');
