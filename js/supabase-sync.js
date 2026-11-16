@@ -26,30 +26,40 @@ async function pushToCloud() {
   else console.log('Data berhasil tersinkron ke Supabase!');
 }
 
-// 1. Tarik data dari Supabase saat dibuka; jika Supabase masih kosong, langsung unggah data laptop
+let isCloudReady = false;
+
+// 1. Tarik data dari Supabase saat dibuka; JANGAN push sebelum tarik data selesai
 async function syncFromCloud() {
-  const { data } = await sb.from('app_backup').select('payload').eq('id', 'main_store').maybeSingle();
-  if (data && data.payload) {
-    let changed = false;
-    BACKUP_KEYS.forEach(k => {
-      if (data.payload[k] && localStorage.getItem(k) !== data.payload[k]) {
-        localStorage.setItem(k, data.payload[k]);
-        changed = true;
-      }
-    });
-    if (changed) location.reload();
-  } else {
-    await pushToCloud();
-  }
+    const { data, error } = await sb.from('app_backup').select('payload').eq('id', 'main_state').single();
+    if (error && error.code !== 'PGRST116') {
+        console.error('Gagal tarik data dari Supabase:', error);
+        return; // Berhenti jika internet/koneksi gagal agar data cloud tidak tertimpa
+    }
+
+    if (data && data.payload) {
+        let changed = false;
+        BACKUP_KEYS.forEach(k => {
+            if (data.payload[k] && origGetItem(k) !== data.payload[k]) {
+                origSetItem(k, data.payload[k]);
+                changed = true;
+            }
+        });
+        isCloudReady = true;
+        if (changed) location.reload();
+    } else {
+        isCloudReady = true;
+        await pushToCloud();
+    }
 }
 
-// 2. Simpan otomatis ke Supabase setiap kali ada transaksi/perubahan di kasir
+// 2. Simpan otomatis ke Supabase HANYA setelah sinkronisasi awal selesai
 const origSetItem = localStorage.setItem.bind(localStorage);
+const origGetItem = localStorage.getItem.bind(localStorage);
 localStorage.setItem = function(key, value) {
-  origSetItem(key, value);
-  if (BACKUP_KEYS.includes(key)) {
-    pushToCloud();
-  }
+    origSetItem(key, value);
+    if (isCloudReady && BACKUP_KEYS.includes(key)) {
+        pushToCloud();
+    }
 };
 
 window.addEventListener('DOMContentLoaded', syncFromCloud);
