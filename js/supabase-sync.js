@@ -30,7 +30,7 @@ let isCloudReady = false;
 
 // 1. Tarik data dari Supabase saat dibuka; JANGAN push sebelum tarik data selesai
 async function syncFromCloud() {
-    const { data, error } = await sb.from('app_backup').select('payload').eq('id', 'main_state').single();
+   const { data, error } = await sb.from('app_backup').select('payload').eq('id', 'main_store').single();
     if (error && error.code !== 'PGRST116') {
         console.error('Gagal tarik data dari Supabase:', error);
         return; // Berhenti jika internet/koneksi gagal agar data cloud tidak tertimpa
