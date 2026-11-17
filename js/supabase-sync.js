@@ -45,7 +45,25 @@ async function syncFromCloud() {
             }
         });
         isCloudReady = true;
-        if (changed) location.reload();
+        
+        // JANGAN gunakan location.reload() agar tidak mereset klik atau modal yang sedang dibuka!
+        if (changed) {
+            console.log('Data lokal diperbarui dari Cloud.');
+            // Muat ulang data variabel di app.js secara otomatis tanpa refresh halaman
+            if (typeof products !== 'undefined' && origGetItem('got_products_v2')) {
+                products = JSON.parse(origGetItem('got_products_v2'));
+            }
+            if (typeof preOrders !== 'undefined' && origGetItem('got_preorders_v2')) {
+                preOrders = JSON.parse(origGetItem('got_preorders_v2'));
+            }
+            if (typeof historyLogs !== 'undefined' && origGetItem('got_history_v2')) {
+                historyLogs = JSON.parse(origGetItem('got_history_v2'));
+            }
+            // Render ulang tampilan aktif saat ini jika fungsi tersedia
+            if (typeof renderProductTable === 'function' && !document.getElementById('tab-products').classList.contains('hidden')) {
+                renderProductTable();
+            }
+        }
     } else {
         isCloudReady = true;
         await pushToCloud();
