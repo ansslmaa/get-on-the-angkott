@@ -12,9 +12,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase-sync.js?v=4"></script>
-<script src="js/config.js?v=3"></script>
-<link rel="stylesheet" href="css/style.css?v=3">
+    <script src="js/supabase-sync.js?v=4"></script>
+    <script src="js/config.js?v=3"></script>
+    <link rel="stylesheet" href="css/style.css?v=3">
 </head>
 <body class="bg-slate-100 text-slate-900 antialiased min-h-screen flex flex-col md:flex-row">
 
@@ -219,7 +219,7 @@
                             <span>Subtotal</span>
                             <span id="cart-total" class="text-brand-blue font-pop text-xl">Rp0</span>
                         </div>
-                        
+
                         <div class="space-y-2">
                             <label class="block text-xs font-bold uppercase">Nama Pembeli (Opsional)</label>
                             <input type="text" id="cart-customer-name" placeholder="Pelanggan Umum" class="w-full px-3 py-2 border-2 border-black rounded-lg text-sm">
@@ -254,18 +254,18 @@
                             <img id="pos-qris-img" src="" alt="QRIS Code" class="w-28 h-28 mx-auto border-2 border-black rounded-lg bg-white p-1 object-contain">
                             <p class="text-[11px] text-slate-600 font-medium">Pastikan pembayaran berhasil di HP pelanggan sebelum menekan tombol bayar.</p>
                             <div id="pos-qris-proof-box" class="mt-3 p-3 bg-white border-2 border-dashed border-slate-400 rounded-xl text-center">
-                                        <label class="block text-xs font-bold text-slate-700 mb-2">
-                                            <i class="fa-solid fa-camera mr-1 text-brand-blue"></i> FOTO BUKTI BAYAR QRIS (WAJIB)
-                                        </label>
-                                        <input type="file" id="pos-qris-proof-input" accept="image/*" capture="environment" onchange="handleQrisProofUpload(event, 'pos')" class="hidden">
-                                        <button type="button" onclick="document.getElementById('pos-qris-proof-input').click()" class="w-full py-2 px-3 bg-brand-blue text-white font-bold text-xs rounded-lg border-2 border-black shadow-brutal-sm">
-                                            <i class="fa-solid fa-camera mr-1"></i> Buka Kamera / Foto Bukti QRIS
-                                        </button>
-                                        <div id="pos-qris-proof-preview" class="hidden mt-2">
-                                            <img id="pos-qris-proof-img" class="max-h-36 mx-auto rounded-lg border border-black object-contain">
-                                            <span class="text-[11px] text-emerald-700 font-bold block mt-1"><i class="fa-solid fa-circle-check"></i> Bukti QRIS siap disimpan</span>
-                                        </div>
-                                    </div>
+                                <label class="block text-xs font-bold text-slate-700 mb-2">
+                                    <i class="fa-solid fa-camera mr-1 text-brand-blue"></i> FOTO BUKTI BAYAR QRIS (WAJIB)
+                                </label>
+                                <input type="file" id="pos-qris-proof-input" accept="image/*" capture="environment" onchange="handleQrisProofUpload(event, 'pos')" class="hidden">
+                                <button type="button" onclick="document.getElementById('pos-qris-proof-input').click()" class="w-full py-2 px-3 bg-brand-blue text-white font-bold text-xs rounded-lg border-2 border-black shadow-brutal-sm">
+                                    <i class="fa-solid fa-camera mr-1"></i> Buka Kamera / Foto Bukti QRIS
+                                </button>
+                                <div id="pos-qris-proof-preview" class="hidden mt-2">
+                                    <img id="pos-qris-proof-img" class="max-h-36 mx-auto rounded-lg border border-black object-contain">
+                                    <span class="text-[11px] text-emerald-700 font-bold block mt-1"><i class="fa-solid fa-circle-check"></i> Bukti QRIS siap disimpan</span>
+                                </div>
+                            </div>
                         </div>
 
                         <button onclick="processPosCheckout()" class="w-full py-3 bg-brand-green text-white font-pop text-lg border-2 border-black rounded-xl neo-shadow hover:bg-brand-darkGreen transition-all neo-button">
@@ -354,9 +354,9 @@
                                 <th class="p-3">ID Transaksi</th>
                                 <th class="p-3">Pelanggan</th>
                                 <th class="p-3">Kategori Pembayaran</th>
-<th class="p-3">Produk Dibeli</th>
-<th class="p-3">Metode</th>
-<th class="p-3 text-right">Nominal Uang Masuk</th>
+                                <th class="p-3">Produk Dibeli</th>
+                                <th class="p-3">Metode</th>
+                                <th class="p-3 text-right">Nominal Uang Masuk</th>
                             </tr>
                         </thead>
                         <tbody id="history-table-body" class="divide-y divide-slate-200 font-medium">
@@ -409,8 +409,7 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Top Products & Summary Breakdown -->
+                        <!-- Top Products & Summary Breakdown -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <!-- Top Products -->
                 <div class="bg-white p-5 rounded-2xl neo-border neo-shadow">
@@ -461,6 +460,7 @@
                 <button onclick="openProductModal()" class="px-4 py-2 bg-brand-green text-white font-pop rounded-xl neo-border neo-shadow hover:bg-brand-darkGreen neo-button">
                     <i class="fa-solid fa-plus mr-1"></i> Tambah Produk
                 </button>
+            </div>
 
             <!-- Product Table -->
             <div class="bg-white rounded-2xl neo-border neo-shadow overflow-hidden">
@@ -558,10 +558,10 @@
                     </div>
                     <div>
                         <label class="block text-xs font-bold uppercase mb-1">Metode Pembayaran DP</label>
-                           <select id="po-dp-method" onchange="togglePoQrisProof()" class="w-full border-2 border-black rounded-lg px-3 py-2 text-xs font-bold bg-white">
-    <option value="Cash">Tunai (Cash)</option>
-    <option value="QRIS">QRIS</option>
-</select>
+                        <select id="po-dp-method" onchange="togglePoQrisProof()" class="w-full border-2 border-black rounded-lg px-3 py-2 text-xs font-bold bg-white">
+                            <option value="CASH">Tunai (Cash)</option>
+                            <option value="QRIS">QRIS</option>
+                        </select>
                     </div>
                 </div>
 
@@ -570,34 +570,33 @@
                     <span id="po-calc-balance" class="text-base text-red-600 font-pop">Rp0</span>
                 </div>
             </div>
+                        <div id="po-qris-proof-box" class="hidden mt-3 p-3 bg-slate-50 border-2 border-dashed border-slate-400 rounded-xl text-center">
+                <label class="block text-xs font-bold text-slate-700 mb-2">
+                    <i class="fa-solid fa-image mr-1 text-brand-blue"></i> BUKTI PEMBAYARAN QRIS
+                </label>
 
-            <div id="po-qris-proof-box" class="hidden mt-3 p-3 bg-slate-50 border-2 border-dashed border-slate-400 rounded-xl text-center">
-                                       <label class="block text-xs font-bold text-slate-700 mb-2">
-    <i class="fa-solid fa-image mr-1 text-brand-blue"></i> BUKTI PEMBAYARAN QRIS
-</label>
+                <!-- Input tersembunyi 1: Buka Galeri / File -->
+                <input type="file" id="po-qris-proof-input" accept="image/*" class="hidden" onchange="handleQrisProofUpload(event, 'po')">
+                <!-- Input tersembunyi 2: Buka Kamera Langsung -->
+                <input type="file" id="po-qris-camera-input" accept="image/*" capture="environment" class="hidden" onchange="handleQrisProofUpload(event, 'po')">
 
-<!-- Input tersembunyi 1: Buka Galeri / File -->
-<input type="file" id="po-qris-proof-input" accept="image/*" class="hidden" onchange="handleQrisProofUpload(event, 'po')">
-<!-- Input tersembunyi 2: Buka Kamera Langsung -->
-<input type="file" id="po-qris-camera-input" accept="image/*" capture="environment" class="hidden" onchange="handleQrisProofUpload(event, 'po')">
+                <!-- Dua Tombol Berdampingan -->
+                <div class="grid grid-cols-2 gap-2">
+                    <button type="button" onclick="document.getElementById('po-qris-proof-input').click()" class="w-full py-2 px-3 bg-brand-blue text-white text-xs font-bold rounded-xl border-2 border-black hover:opacity-90 transition">
+                        <i class="fa-solid fa-upload mr-1"></i> Galeri / File
+                    </button>
+                    <button type="button" onclick="document.getElementById('po-qris-camera-input').click()" class="w-full py-2 px-3 bg-amber-400 text-black text-xs font-bold rounded-xl border-2 border-black hover:opacity-90 transition">
+                        <i class="fa-solid fa-camera mr-1"></i> Kamera
+                    </button>
+                </div>
+                <div id="po-qris-proof-preview" class="hidden mt-2 text-center">
+                    <img id="po-qris-proof-img" class="max-h-36 mx-auto rounded-lg border border-slate-300">
+                    <span class="text-[11px] text-emerald-700 font-bold block mt-1">
+                        <i class="fa-solid fa-circle-check mr-1"></i> Bukti QRIS terlampir
+                    </span>
+                </div>
+            </div>
 
-<!-- Dua Tombol Berdampingan -->
-<div class="grid grid-cols-2 gap-2">
-    <button type="button" onclick="document.getElementById('po-qris-proof-input').click()" class="w-full py-2 px-3 bg-brand-blue text-white text-xs font-bold rounded-xl border-2 border-black hover:opacity-90 transition">
-        <i class="fa-solid fa-upload mr-1"></i> Galeri / File
-    </button>
-    <button type="button" onclick="document.getElementById('po-qris-camera-input').click()" class="w-full py-2 px-3 bg-amber-400 text-black text-xs font-bold rounded-xl border-2 border-black hover:opacity-90 transition">
-        <i class="fa-solid fa-camera mr-1"></i> Kamera
-    </button>
-</div>
-<div id="po-qris-proof-preview" class="hidden mt-2 text-center">
-    <img id="po-qris-proof-img" class="max-h-36 mx-auto rounded-lg border border-slate-300">
-    <span class="text-[11px] text-emerald-700 font-bold block mt-1">
-        <i class="fa-solid fa-circle-check mr-1"></i> Bukti QRIS terlampir
-    </span>
-</div>
-        </div>
-     
             <div class="flex justify-end gap-3 border-t-2 border-black pt-4 mt-4">
                 <button type="button" onclick="closePoModal()" class="px-4 py-2 border-2 border-black rounded-xl font-bold hover:bg-slate-100">
                     Batal
@@ -610,8 +609,8 @@
     </div>
 
     <!-- MODAL 2: CATAT PEMBAYARAN PO TAMBAHAN / PELUNASAN -->
-<div id="po-pay-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white neo-border rounded-2xl w-full max-w-md neo-shadow-lg p-6 space-y-4">
+    <div id="po-pay-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white neo-border rounded-2xl w-full max-w-md neo-shadow-lg p-6 space-y-4">
             <div class="flex justify-between items-center border-b-2 border-black pb-3">
                 <h3 class="font-pop text-xl text-slate-900"><i class="fa-solid fa-hand-holding-dollar text-brand-green mr-2"></i>Catat Pembayaran PO</h3>
                 <button onclick="closePoPayModal()" class="text-slate-400 hover:text-black font-bold text-xl">&times;</button>
@@ -635,43 +634,41 @@
                 <div>
                     <label class="block text-xs font-bold uppercase mb-1">Metode Pembayaran</label>
                     <select id="popay-method-select" onchange="togglePoPayQrisDisplay()" class="w-full p-2 border-2 border-black rounded-lg font-bold">
-    <option value="CASH">Cash / Tunai</option>
-    <option value="QRIS">QRIS</option>
-</select>
+                        <option value="CASH">Cash / Tunai</option>
+                        <option value="QRIS">QRIS</option>
+                    </select>
                 </div>
 
                 <!-- QRIS Preview if QRIS selected -->
                 <div id="popay-qris-box" class="hidden space-y-2 bg-sky-50 p-3 rounded-xl border border-black text-center">
                     <span class="text-xs font-bold text-sky-900 block">Tunjukkan QRIS ke Pelanggan</span>
                     <img id="popay-qris-img" src="" alt="QRIS" class="w-28 h-28 mx-auto border-2 border-black rounded-lg bg-white p-1 object-contain">
-                   <div id="po-pay-qris-proof-box" class="mt-3 p-3 bg-white border-2 border-dashed border-slate-400 rounded-xl">
-    <label class="block text-xs font-bold text-slate-700 mb-2">
-        <i class="fa-solid fa-image mr-1 text-brand-blue"></i> BUKTI PELUNASAN QRIS
-    </label>
+                    <div id="po-pay-qris-proof-box" class="mt-3 p-3 bg-white border-2 border-dashed border-slate-400 rounded-xl">
+                        <label class="block text-xs font-bold text-slate-700 mb-2">
+                            <i class="fa-solid fa-image mr-1 text-brand-blue"></i> BUKTI PELUNASAN QRIS
+                        </label>
 
-    <!-- Input tersembunyi 1: Buka Galeri / File -->
-    <input type="file" id="po-pay-qris-proof-input" accept="image/*" class="hidden" onchange="handleQrisProofUpload(event, 'po-pay')">
-    <!-- Input tersembunyi 2: Buka Kamera Langsung -->
-    <input type="file" id="po-pay-qris-camera-input" accept="image/*" capture="environment" class="hidden" onchange="handleQrisProofUpload(event, 'po-pay')">
+                        <!-- Input tersembunyi 1: Buka Galeri / File -->
+                        <input type="file" id="po-pay-qris-proof-input" accept="image/*" class="hidden" onchange="handleQrisProofUpload(event, 'po-pay')">
+                        <!-- Input tersembunyi 2: Buka Kamera Langsung -->
+                        <input type="file" id="po-pay-qris-camera-input" accept="image/*" capture="environment" class="hidden" onchange="handleQrisProofUpload(event, 'po-pay')">
 
-    <!-- Dua Tombol Berdampingan -->
-    <div class="grid grid-cols-2 gap-2">
-        <button type="button" onclick="document.getElementById('po-pay-qris-proof-input').click()" class="w-full py-2 px-3 bg-brand-blue text-white text-xs font-bold rounded-xl border-2 border-black hover:opacity-90 transition">
-            <i class="fa-solid fa-upload mr-1"></i> Galeri / File
-        </button>
-        <button type="button" onclick="document.getElementById('po-pay-qris-camera-input').click()" class="w-full py-2 px-3 bg-amber-400 text-black text-xs font-bold rounded-xl border-2 border-black hover:opacity-90 transition">
-            <i class="fa-solid fa-camera mr-1"></i> Kamera
-        </button>
-    </div>
-
-    <!-- Preview Foto Pelunasan -->
-    <div id="po-pay-qris-proof-preview" class="hidden mt-2 text-center">
-        <img id="po-pay-qris-proof-img" class="max-h-36 mx-auto rounded-lg border border-slate-300">
-        <span class="text-[11px] text-emerald-700 font-bold block mt-1">
-            <i class="fa-solid fa-circle-check mr-1"></i> Bukti QRIS terlampir
-        </span>
-    </div>
-</div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button type="button" onclick="document.getElementById('po-pay-qris-proof-input').click()" class="w-full py-2 px-3 bg-brand-blue text-white text-xs font-bold rounded-xl border-2 border-black hover:opacity-90 transition">
+                                <i class="fa-solid fa-upload mr-1"></i> Galeri / File
+                            </button>
+                            <button type="button" onclick="document.getElementById('po-pay-qris-camera-input').click()" class="w-full py-2 px-3 bg-amber-400 text-black text-xs font-bold rounded-xl border-2 border-black hover:opacity-90 transition">
+                                <i class="fa-solid fa-camera mr-1"></i> Kamera
+                            </button>
+                        </div>
+                        <div id="po-pay-qris-proof-preview" class="hidden mt-2 text-center">
+                            <img id="po-pay-qris-proof-img" class="max-h-36 mx-auto rounded-lg border border-slate-300">
+                            <span class="text-[11px] text-emerald-700 font-bold block mt-1">
+                                <i class="fa-solid fa-circle-check mr-1"></i> Bukti QRIS terlampir
+                            </span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="flex justify-end gap-3 border-t-2 border-black pt-4">
@@ -683,7 +680,7 @@
         </div>
     </div>
 
-    <!-- MODAL 3: CHECKLIST KONFIRMASI PENGAMBILAN PRODUK PO -->
+    <!-- MODAL 3: CHECKLIST PENGAMBILAN BARANG -->
     <div id="po-pickup-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white neo-border rounded-2xl w-full max-w-md neo-shadow-lg p-6 space-y-4">
             <div class="flex justify-between items-center border-b-2 border-black pb-3">
@@ -734,42 +731,42 @@
 
     <!-- MODAL 5: TAMBAH / EDIT PRODUK -->
     <div id="product-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white neo-border rounded-2xl w-full max-w-md neo-shadow-lg p-6 space-y-4 max-h-[90vh] overflow-y-auto">
-        <div class="flex justify-between items-center border-b-2 border-black pb-3">
-            <h3 class="font-pop text-xl text-slate-900" id="product-modal-title">Tambah Produk</h3>
-            <button onclick="closeProductModal()" class="text-slate-400 hover:text-black font-bold text-xl">&times;</button>
+        <div class="bg-white neo-border rounded-2xl w-full max-w-md neo-shadow-lg p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b-2 border-black pb-3">
+                <h3 class="font-pop text-xl text-slate-900" id="product-modal-title">Tambah Produk</h3>
+                <button onclick="closeProductModal()" class="text-slate-400 hover:text-black font-bold text-xl">&times;</button>
+            </div>
+
+            <form id="product-form" onsubmit="saveProduct(event)" class="space-y-3">
+                <input type="hidden" id="prod-id">
+                <div>
+                    <label class="block text-xs font-bold uppercase mb-1">Nama Produk</label>
+                    <input type="text" id="prod-name" required class="w-full p-2 border-2 border-black rounded-lg font-medium">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase mb-1">Kategori</label>
+                    <input type="text" id="prod-category" placeholder="Minuman / Merchandise / Dessert" required class="w-full p-2 border-2 border-black rounded-lg font-medium">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase mb-1">URL / Link Foto Produk</label>
+                    <input type="text" id="prod-image" placeholder="https://..." class="w-full p-2 border-2 border-black rounded-lg font-medium">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase mb-1">Harga Jual (Rp)</label>
+                    <input type="number" id="prod-price" required min="0" class="w-full p-2 border-2 border-black rounded-lg font-medium">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase mb-1">Stok Fisik Awal</label>
+                    <input type="number" id="prod-stock" required min="0" class="w-full p-2 border-2 border-black rounded-lg font-medium">
+                </div>
+
+                <div class="flex justify-end gap-3 border-t-2 border-black pt-4">
+                    <button type="button" onclick="closeProductModal()" class="px-4 py-2 border-2 border-black rounded-xl font-bold hover:bg-slate-100 text-sm">Batal</button>
+                    <button type="submit" class="px-5 py-2 bg-brand-blue text-white font-pop rounded-xl neo-border neo-shadow hover:bg-brand-darkBlue text-sm neo-button">Simpan</button>
+                </div>
+            </form>
         </div>
-
-        <form id="product-form" onsubmit="saveProduct(event)" class="space-y-3">
-            <input type="hidden" id="prod-id">
-            <div>
-                <label class="block text-xs font-bold uppercase mb-1">Nama Produk</label>
-                <input type="text" id="prod-name" required class="w-full p-2 border-2 border-black rounded-lg font-medium">
-            </div>
-            <div>
-                <label class="block text-xs font-bold uppercase mb-1">Kategori</label>
-                <input type="text" id="prod-category" placeholder="Minuman / Merchandise / Dessert" required class="w-full p-2 border-2 border-black rounded-lg font-medium">
-            </div>
-            <div>
-                <label class="block text-xs font-bold uppercase mb-1">URL / Link Foto Produk</label>
-                <input type="text" id="prod-image" placeholder="https://..." class="w-full p-2 border-2 border-black rounded-lg font-medium">
-            </div>
-            <div>
-                <label class="block text-xs font-bold uppercase mb-1">Harga Jual (Rp)</label>
-                <input type="number" id="prod-price" required min="0" class="w-full p-2 border-2 border-black rounded-lg font-medium">
-            </div>
-            <div>
-                <label class="block text-xs font-bold uppercase mb-1">Stok Fisik Awal</label>
-                <input type="number" id="prod-stock" required min="0" class="w-full p-2 border-2 border-black rounded-lg font-medium">
-            </div>
-
-            <div class="flex justify-end gap-3 border-t-2 border-black pt-4">
-                <button type="button" onclick="closeProductModal()" class="px-4 py-2 border-2 border-black rounded-xl font-bold hover:bg-slate-100 text-sm">Batal</button>
-                <button type="submit" class="px-5 py-2 bg-brand-blue text-white font-pop rounded-xl neo-border neo-shadow hover:bg-brand-darkBlue text-sm neo-button">Simpan</button>
-            </div>
-        </form>
     </div>
-</div>
 
     <!-- MODAL 6: STRUK / BUKTI TRANSAKSI (PRINTABLE) -->
     <div id="receipt-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
@@ -822,9 +819,10 @@
     </div>
 
     <!-- JAVASCRIPT APPLICATION LOGIC -->
-     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
-     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="js/app.js?v=4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="app.js?v=5"></script>
+
     <div id="qris-proof-viewer-modal" class="hidden fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
         <div class="bg-white border-4 border-black rounded-2xl max-w-md w-full p-5 shadow-brutal">
             <div class="flex justify-between items-center border-b-2 border-black pb-3 mb-3">
@@ -843,4 +841,4 @@
         </div>
     </div>
 </body>
-</html>
+<script src="js/app.js?v=5"></script>
