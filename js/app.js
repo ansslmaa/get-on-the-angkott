@@ -1123,10 +1123,13 @@ if (dp > 0 && dpMethod === 'QRIS' && !currentQrisProof.po) {
         }
 
         function closePoPayModal() {
-            activePoForPayment = null;
-            document.getElementById('po-pay-modal').classList.add('hidden');
-        }
-
+    activePoForPayment = null;
+    const modal = document.getElementById('po-pay-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none'; // Memastikan latar belakang gelap ikut hilang
+    }
+}
         function togglePoPayQrisDisplay() {
             const method = document.getElementById('popay-method-select').value;
             const qrisBox = document.getElementById('popay-qris-box');
@@ -1510,9 +1513,9 @@ showToast('Pembayaran PO Berhasil Dicatat!');
                     <td class="p-3 border-b font-bold text-yellow-600">${p.allocated || 0}</td>
                     <td class="p-3 border-b font-bold ${available <= 5 ? 'text-red-600' : 'text-green-600'}">${available}</td>
                     <td class="p-3 border-b font-bold text-slate-800">${p.sold || 0}</td>
-                    <td class="p-3 border-b text-center space-x-1">
-                        <button type="button" onclick="openProductModal('${p.id}')" class="px-2 py-1 bg-blue-100 text-blue-700 font-bold text-xs border border-blue-400 rounded hover:bg-blue-200">Edit</button>
-                        <button type="button" onclick="deleteProduct('${p.id}')" class="px-2 py-1 bg-red-100 text-red-700 font-bold text-xs border border-red-400 rounded hover:bg-red-200">Hapus</button>
+                    <td class="p-3 border-b text-center space-x-1 relative z-10">
+                        <button type="button" onclick="openProductModal('${p.id}')" class="px-2 py-1 bg-blue-100 text-blue-700 font-bold text-xs border border-blue-400 rounded hover:bg-blue-200 cursor-pointer">Edit</button>
+                        <button type="button" onclick="deleteProduct('${p.id}')" class="px-2 py-1 bg-red-100 text-red-700 font-bold text-xs border border-red-400 rounded hover:bg-red-200 cursor-pointer">Hapus</button>
                     </td>
                 `;
                 body.appendChild(row);
