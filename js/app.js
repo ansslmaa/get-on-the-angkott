@@ -1199,9 +1199,16 @@ const poPayInp = document.getElementById('po-pay-qris-proof-input');
 if (poPayPrev) poPayPrev.classList.add('hidden');
 if (poPayInp) poPayInp.value = '';
             saveState();
-            closePoPayModal();
-            renderPoList();
-            showToast('Pembayaran PO Berhasil Dicatat!');
+
+closePoPayModal();
+
+// Perbarui semua tampilan setelah pembayaran
+renderPoList();
+renderDashboard();
+renderHistoryTable();
+renderIncomeStats();
+
+showToast('Pembayaran PO Berhasil Dicatat!');
         }
 
         function openPoHistoryModal(poId) {
