@@ -728,7 +728,7 @@ if (posInp) posInp.value = '';
 </button>
                                 
                                 ${po.balanceRemaining > 0 ? `
-                                    <button onclick="openPoPayModal('${po.id}')" class="px-3 py-1.5 bg-brand-green text-white font-pop font-bold text-xs rounded-lg neo-border neo-shadow-sm hover:bg-brand-darkGreen neo-button">
+                                    <button type="button" onclick="event.stopPropagation(); openPoPayModal('${po.id}')" class="px-3 py-1.5 bg-brand-green text-white font-pop font-bold text-xs rounded-lg neo-border neo-shadow-sm hover:bg-brand-darkGreen neo-button">
                                         <i class="fa-solid fa-money-bill-transfer mr-1"></i> Catat Pelunasan
                                     </button>
                                 ` : ''}
@@ -858,11 +858,13 @@ if (existingPoTx) {
         }
 
         function closePoModal() {
-            editingPoId = null;
-            document.getElementById('po-input-dp').disabled = false;
-            document.getElementById('po-dp-method').disabled = false;
-            document.getElementById('po-modal').classList.add('hidden');
-        }
+    editingPoId = null;
+    const modal = document.getElementById('po-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+    }
+}
 
        function calculatePoBalance() {
     let total = 0;
@@ -1237,8 +1239,12 @@ showToast('Pembayaran PO Berhasil Dicatat!');
         }
 
         function closePoHistoryModal() {
-            document.getElementById('po-history-modal').classList.add('hidden');
-        }
+    const modal = document.getElementById('po-history-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+    }
+}
 
 
         // ================= 5. CHECKLIST PENGAMBILAN BARANG =================
@@ -1282,9 +1288,13 @@ showToast('Pembayaran PO Berhasil Dicatat!');
         }
 
         function closePoPickupModal() {
-            activePoForPickup = null;
-            document.getElementById('po-pickup-modal').classList.add('hidden');
-        }
+    activePoForPickup = null;
+    const modal = document.getElementById('po-pickup-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+    }
+}
 
         function savePoPickupChecklist() {
             if (!activePoForPickup) return;
@@ -1513,9 +1523,9 @@ showToast('Pembayaran PO Berhasil Dicatat!');
                     <td class="p-3 border-b font-bold text-yellow-600">${p.allocated || 0}</td>
                     <td class="p-3 border-b font-bold ${available <= 5 ? 'text-red-600' : 'text-green-600'}">${available}</td>
                     <td class="p-3 border-b font-bold text-slate-800">${p.sold || 0}</td>
-                    <td class="p-3 border-b text-center space-x-1 relative z-10">
-                        <button type="button" onclick="openProductModal('${p.id}')" class="px-2 py-1 bg-blue-100 text-blue-700 font-bold text-xs border border-blue-400 rounded hover:bg-blue-200 cursor-pointer">Edit</button>
-                        <button type="button" onclick="deleteProduct('${p.id}')" class="px-2 py-1 bg-red-100 text-red-700 font-bold text-xs border border-red-400 rounded hover:bg-red-200 cursor-pointer">Hapus</button>
+                    <td class="p-3 border-b text-center space-x-1">
+                        <button type="button" onclick="event.stopPropagation(); openProductModal('${p.id}');" class="px-3 py-1 bg-blue-100 text-blue-700 font-bold text-xs border border-blue-400 rounded hover:bg-blue-200 cursor-pointer">Edit</button>
+                        <button type="button" onclick="event.stopPropagation(); deleteProduct('${p.id}');" class="px-3 py-1 bg-red-100 text-red-700 font-bold text-xs border border-red-400 rounded hover:bg-red-200 cursor-pointer">Hapus</button>
                     </td>
                 `;
                 body.appendChild(row);
@@ -1523,36 +1533,47 @@ showToast('Pembayaran PO Berhasil Dicatat!');
         }
 
         function openProductModal(productId = null) {
-            const modal = document.getElementById('product-modal');
-            const title = document.getElementById('product-modal-title');
-            const form = document.getElementById('product-form');
+    const modal = document.getElementById('product-modal');
+    const title = document.getElementById('product-modal-title');
+    const form = document.getElementById('product-form');
+    if (!modal) return;
 
-            if (!modal) return;
+    if (productId) {
+        if (title) title.innerText = 'Edit Produk';
+        const prod = products.find(prod => String(prod.id) === String(productId));
+        if (prod) {
+            // Sesuaikan ID dengan yang ada di index.html Anda
+            const idInput = document.getElementById('product-id-input') || document.getElementById('prod-id');
+            const nameInput = document.getElementById('product-name-input') || document.getElementById('prod-name');
+            const catInput = document.getElementById('product-category-input') || document.getElementById('prod-category');
+            const priceInput = document.getElementById('product-price-input') || document.getElementById('prod-price');
+            const stockInput = document.getElementById('product-stock-input') || document.getElementById('prod-stock');
+            const imgInput = document.getElementById('product-image-input') || document.getElementById('prod-image');
 
-            if (productId) {
-                const p = products.find(prod => String(prod.id) === String(productId));
-                if (p) {
-                    if (title) title.innerText = 'Edit Produk';
-                    document.getElementById('prod-id').value = p.id;
-                    document.getElementById('prod-name').value = p.name;
-                    document.getElementById('prod-category').value = p.category || '';
-                    document.getElementById('prod-image').value = p.image || '';
-                    document.getElementById('prod-price').value = p.price;
-                    document.getElementById('prod-stock').value = p.stock;
-                }
-            } else {
-                if (title) title.innerText = 'Tambah Produk';
-                if (form) form.reset();
-                document.getElementById('prod-id').value = '';
-            }
-
-            modal.classList.remove('hidden');
+            if (idInput) idInput.value = prod.id;
+            if (nameInput) nameInput.value = prod.name;
+            if (catInput) catInput.value = prod.category || '';
+            if (priceInput) priceInput.value = prod.price;
+            if (stockInput) stockInput.value = prod.stock;
+            if (imgInput) imgInput.value = prod.image || '';
         }
+    } else {
+        if (title) title.innerText = 'Tambah Produk';
+        if (form) form.reset();
+        const idInput = document.getElementById('product-id-input') || document.getElementById('prod-id');
+        if (idInput) idInput.value = '';
+    }
 
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex'; // Memastikan modal muncul di layar
+}
         function closeProductModal() {
-            const modal = document.getElementById('product-modal');
-            if (modal) modal.classList.add('hidden');
-        }
+    const modal = document.getElementById('product-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+    }
+}
 
         function saveProduct(e) {
             if (e) e.preventDefault();
