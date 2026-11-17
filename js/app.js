@@ -1584,34 +1584,26 @@ showToast('Pembayaran PO Berhasil Dicatat!');
 
     if (productId) {
         if (title) title.innerText = 'Edit Produk';
-        const prod = products.find(prod => String(prod.id) === String(productId));
+        const prod = products.find(p => String(p.id) === String(productId));
         if (prod) {
-            // Sesuaikan ID dengan yang ada di index.html Anda
-            const idInput = document.getElementById('product-id-input') || document.getElementById('prod-id');
-            const nameInput = document.getElementById('product-name-input') || document.getElementById('prod-name');
-            const catInput = document.getElementById('product-category-input') || document.getElementById('prod-category');
-            const priceInput = document.getElementById('product-price-input') || document.getElementById('prod-price');
-            const stockInput = document.getElementById('product-stock-input') || document.getElementById('prod-stock');
-            const imgInput = document.getElementById('product-image-input') || document.getElementById('prod-image');
-
-            if (idInput) idInput.value = prod.id;
-            if (nameInput) nameInput.value = prod.name;
-            if (catInput) catInput.value = prod.category || '';
-            if (priceInput) priceInput.value = prod.price;
-            if (stockInput) stockInput.value = prod.stock;
-            if (imgInput) imgInput.value = prod.image || '';
+            document.getElementById('prod-id').value = prod.id;
+            document.getElementById('prod-name').value = prod.name;
+            document.getElementById('prod-category').value = prod.category || '';
+            document.getElementById('prod-image').value = prod.image || '';
+            document.getElementById('prod-price').value = prod.price;
+            document.getElementById('prod-stock').value = prod.stock;
         }
     } else {
-        if (title) title.innerText = 'Tambah Produk';
+        if (title) title.innerText = 'Tambah Produk Baru';
         if (form) form.reset();
-        const idInput = document.getElementById('product-id-input') || document.getElementById('prod-id');
-        if (idInput) idInput.value = '';
+        document.getElementById('prod-id').value = '';
     }
 
     modal.classList.remove('hidden');
-    modal.style.display = 'flex'; // Memastikan modal muncul di layar
+    modal.style.display = 'flex';
 }
-        function closeProductModal() {
+
+function closeProductModal() {
     const modal = document.getElementById('product-modal');
     if (modal) {
         modal.classList.add('hidden');
@@ -1619,9 +1611,9 @@ showToast('Pembayaran PO Berhasil Dicatat!');
     }
 }
 
-        function saveProduct(e) {
-    if (e) e.preventDefault();
-    
+function saveProduct(event) {
+    if (event) event.preventDefault();
+
     const id = document.getElementById('prod-id').value.trim();
     const name = document.getElementById('prod-name').value.trim();
     const category = document.getElementById('prod-category').value.trim();
@@ -1630,12 +1622,12 @@ showToast('Pembayaran PO Berhasil Dicatat!');
     const stock = parseInt(document.getElementById('prod-stock').value) || 0;
 
     if (!name) {
-        showToast('Nama produk wajib diisi!', 'fa-circle-exclamation');
+        alert("Nama produk wajib diisi!");
         return;
     }
 
     if (id) {
-        // Proses Edit Produk
+        // Edit produk yang sudah ada
         const p = products.find(prod => String(prod.id) === String(id));
         if (p) {
             p.name = name;
@@ -1645,7 +1637,7 @@ showToast('Pembayaran PO Berhasil Dicatat!');
             p.stock = stock;
         }
     } else {
-        // Proses Tambah Produk Baru
+        // Tambah produk baru
         const newProd = {
             id: 'p-' + Date.now(),
             name: name,
@@ -1659,12 +1651,15 @@ showToast('Pembayaran PO Berhasil Dicatat!');
         products.push(newProd);
     }
 
-    // Simpan perubahan secara permanen ke localStorage & update tampilan
-    saveState();
+    // Simpan data aman tanpa mereset riwayat lain
+    if (typeof saveState === 'function') saveState();
+    if (typeof renderProductTable === 'function') renderProductTable();
+    if (typeof renderDashboard === 'function') renderDashboard();
+
     closeProductModal();
-    renderProductTable();
-    renderDashboard();
-    showToast('Data produk berhasil disimpan!');
+    if (typeof showToast === 'function') {
+        showToast('Data produk berhasil disimpan!');
+    }
 }
 
         function deleteProduct(productId) {
