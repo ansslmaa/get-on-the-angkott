@@ -1548,33 +1548,44 @@ showToast('Pembayaran PO Berhasil Dicatat!');
 
         // ================= 8. MANAJEMEN PRODUK =================
         function renderProductTable() {
-            const body = document.getElementById('product-table-body');
-            if (!body) return;
-            body.innerHTML = '';
+    const body = document.getElementById('product-table-body');
+    if (!body) return;
+    body.innerHTML = '';
 
-            products.forEach(p => {
-                const available = Number(p.stock) - Number(p.allocated || 0);
-                const row = document.createElement('tr');
-                row.className = "hover:bg-slate-50 text-xs";
-                row.innerHTML = `
-                    <td class="p-3 border-b">
-                        <img src="${p.image || 'https://placehold.co/100x100?text=Foto'}" class="w-10 h-10 object-cover rounded-lg border border-black">
-                    </td>
-                    <td class="p-3 border-b font-bold text-slate-900">${p.name}</td>
-                    <td class="p-3 border-b"><span class="px-2 py-0.5 rounded border border-black text-xs bg-slate-100 font-bold">${p.category || 'Umum'}</span></td>
-                    <td class="p-3 border-b font-bold text-brand-blue">${formatRp(p.price)}</td>
-                    <td class="p-3 border-b font-bold text-slate-700">${p.stock}</td>
-                    <td class="p-3 border-b font-bold text-yellow-600">${p.allocated || 0}</td>
-                    <td class="p-3 border-b font-bold ${available <= 5 ? 'text-red-600' : 'text-green-600'}">${available}</td>
-                    <td class="p-3 border-b font-bold text-slate-800">${p.sold || 0}</td>
-                    <td class="p-3 border-b text-center space-x-1">
-                        <button type="button" onclick="event.stopPropagation(); openProductModal('${p.id}');" class="px-3 py-1 bg-blue-100 text-blue-700 font-bold text-xs border border-blue-400 rounded hover:bg-blue-200 cursor-pointer">Edit</button>
-                        <button type="button" onclick="event.stopPropagation(); deleteProduct('${p.id}');" class="px-3 py-1 bg-red-100 text-red-700 font-bold text-xs border border-red-400 rounded hover:bg-red-200 cursor-pointer">Hapus</button>
-                    </td>
-                `;
-                body.appendChild(row);
-            });
-        }
+    if (!products || products.length === 0) {
+        body.innerHTML = `
+            <tr>
+                <td colspan="9" class="p-8 text-center text-slate-400 font-bold">
+                    Belum ada produk. Silakan tambahkan produk baru.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    products.forEach(p => {
+        const available = Number(p.stock || 0) - Number(p.allocated || 0);
+        const row = document.createElement('tr');
+        row.className = "hover:bg-slate-50 text-xs";
+        row.innerHTML = `
+            <td class="p-3 border-b">
+                <img src="${p.image || 'https://placehold.co/100x100?text=Foto'}" class="w-10 h-10 object-cover rounded-lg border border-black">
+            </td>
+            <td class="p-3 border-b font-bold text-slate-900">${p.name}</td>
+            <td class="p-3 border-b"><span class="px-2 py-0.5 rounded border border-black text-xs bg-slate-100 font-bold">${p.category || 'Umum'}</span></td>
+            <td class="p-3 border-b font-bold text-brand-blue">${formatRp(p.price)}</td>
+            <td class="p-3 border-b font-bold text-slate-700">${p.stock}</td>
+            <td class="p-3 border-b font-bold text-yellow-600">${p.allocated || 0}</td>
+            <td class="p-3 border-b font-bold ${available <= 5 ? 'text-red-600' : 'text-green-600'}">${available}</td>
+            <td class="p-3 border-b font-bold text-slate-800">${p.sold || 0}</td>
+            <td class="p-3 border-b text-center space-x-1">
+                <button type="button" onclick="openProductModal('${p.id}');" class="px-3 py-1 bg-blue-100 text-blue-700 font-bold text-xs border border-blue-400 rounded hover:bg-blue-200">Edit</button>
+                <button type="button" onclick="deleteProduct('${p.id}');" class="px-3 py-1 bg-red-100 text-red-700 font-bold text-xs border border-red-400 rounded hover:bg-red-200">Hapus</button>
+            </td>
+        `;
+        body.appendChild(row);
+    });
+}
 
         function openProductModal(productId = null) {
     const modal = document.getElementById('product-modal');
