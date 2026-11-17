@@ -1203,6 +1203,12 @@ const poPayPrev = document.getElementById('po-pay-qris-proof-preview');
 const poPayInp = document.getElementById('po-pay-qris-proof-input');
 if (poPayPrev) poPayPrev.classList.add('hidden');
 if (poPayInp) poPayInp.value = '';
+po.items.forEach(item => {
+        const prod = products.find(p => p.id === item.productId);
+        if (prod) {
+            prod.sold = (prod.sold || 0) + item.qtyTotal;
+        }
+    });
             saveState();
 
 closePoPayModal();
