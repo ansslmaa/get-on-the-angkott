@@ -1492,12 +1492,13 @@ showToast('Pembayaran PO Berhasil Dicatat!');
         // ================= 8. MANAJEMEN PRODUK =================
         function renderProductTable() {
             const body = document.getElementById('product-table-body');
+            if (!body) return;
             body.innerHTML = '';
 
             products.forEach(p => {
-                const available = p.stock - p.allocated;
+                const available = Number(p.stock) - Number(p.allocated || 0);
                 const row = document.createElement('tr');
-                row.className = "hover:bg-slate-50";
+                row.className = "hover:bg-slate-50 text-xs";
                 row.innerHTML = `
                     <td class="p-3 border-b">
                         <img src="${p.image || 'https://placehold.co/100x100?text=Foto'}" class="w-10 h-10 object-cover rounded-lg border border-black">
@@ -1506,12 +1507,12 @@ showToast('Pembayaran PO Berhasil Dicatat!');
                     <td class="p-3 border-b"><span class="px-2 py-0.5 rounded border border-black text-xs bg-slate-100 font-bold">${p.category || 'Umum'}</span></td>
                     <td class="p-3 border-b font-bold text-brand-blue">${formatRp(p.price)}</td>
                     <td class="p-3 border-b font-bold text-slate-700">${p.stock}</td>
-                    <td class="p-3 border-b font-bold text-yellow-600">${p.allocated}</td>
+                    <td class="p-3 border-b font-bold text-yellow-600">${p.allocated || 0}</td>
                     <td class="p-3 border-b font-bold ${available <= 5 ? 'text-red-600' : 'text-green-600'}">${available}</td>
                     <td class="p-3 border-b font-bold text-slate-800">${p.sold || 0}</td>
                     <td class="p-3 border-b text-center space-x-1">
-                        <button onclick="openProductModal('${p.id}')" class="px-2 py-1 bg-blue-100 text-blue-700 font-bold text-xs border border-blue-400 rounded hover:bg-blue-200">Edit</button>
-                        <button onclick="deleteProduct('${p.id}')" class="px-2 py-1 bg-red-100 text-red-700 font-bold text-xs border border-red-400 rounded hover:bg-red-200">Hapus</button>
+                        <button type="button" onclick="openProductModal('${p.id}')" class="px-2 py-1 bg-blue-100 text-blue-700 font-bold text-xs border border-blue-400 rounded hover:bg-blue-200">Edit</button>
+                        <button type="button" onclick="deleteProduct('${p.id}')" class="px-2 py-1 bg-red-100 text-red-700 font-bold text-xs border border-red-400 rounded hover:bg-red-200">Hapus</button>
                     </td>
                 `;
                 body.appendChild(row);
@@ -1523,10 +1524,12 @@ showToast('Pembayaran PO Berhasil Dicatat!');
             const title = document.getElementById('product-modal-title');
             const form = document.getElementById('product-form');
 
+            if (!modal) return;
+
             if (productId) {
-                const p = products.find(prod => prod.id === productId);
+                const p = products.find(prod => String(prod.id) === String(productId));
                 if (p) {
-                    title.innerText = 'Edit Produk';
+                    if (title) title.innerText = 'Edit Produk';
                     document.getElementById('prod-id').value = p.id;
                     document.getElementById('prod-name').value = p.name;
                     document.getElementById('prod-category').value = p.category || '';
@@ -1535,8 +1538,8 @@ showToast('Pembayaran PO Berhasil Dicatat!');
                     document.getElementById('prod-stock').value = p.stock;
                 }
             } else {
-                title.innerText = 'Tambah Produk';
-                form.reset();
+                if (title) title.innerText = 'Tambah Produk';
+                if (form) form.reset();
                 document.getElementById('prod-id').value = '';
             }
 
@@ -1544,20 +1547,28 @@ showToast('Pembayaran PO Berhasil Dicatat!');
         }
 
         function closeProductModal() {
-            document.getElementById('product-modal').classList.add('hidden');
+            const modal = document.getElementById('product-modal');
+            if (modal) modal.classList.add('hidden');
         }
 
         function saveProduct(e) {
-            e.preventDefault();
-            const id = document.getElementById('prod-id').value;
+            if (e) e.preventDefault();
+            
+            const id = document.getElementById('prod-id').value.trim();
             const name = document.getElementById('prod-name').value.trim();
             const category = document.getElementById('prod-category').value.trim();
             const image = document.getElementById('prod-image').value.trim();
             const price = parseFloat(document.getElementById('prod-price').value) || 0;
             const stock = parseInt(document.getElementById('prod-stock').value) || 0;
 
+            if (!name) {
+                showToast('Nama produk wajib diisi!', 'fa-circle-exclamation');
+                return;
+            }
+
             if (id) {
-                const p = products.find(prod => prod.id === id);
+                // Proses Edit Produk
+                const p = products.find(prod => String(prod.id) === String(id));
                 if (p) {
                     p.name = name;
                     p.category = category;
@@ -1566,37 +1577,42 @@ showToast('Pembayaran PO Berhasil Dicatat!');
                     p.stock = stock;
                 }
             } else {
-                products.push({
+                // Proses Tambah Produk Baru
+                const newProd = {
                     id: 'p-' + Date.now(),
                     name: name,
-                    category: category,
+                    category: category || 'Umum',
                     image: image,
                     price: price,
                     stock: stock,
                     allocated: 0,
                     sold: 0
-                });
+                };
+                products.push(newProd);
             }
 
+            // Simpan perubahan secara permanen ke localStorage
             saveState();
             closeProductModal();
             renderProductTable();
+            renderDashboard();
             showToast('Data produk berhasil disimpan!');
         }
 
         function deleteProduct(productId) {
-            const p = products.find(prod => prod.id === productId);
+            const p = products.find(prod => String(prod.id) === String(productId));
             if (!p) return;
 
-            if (p.allocated > 0) {
+            if (Number(p.allocated || 0) > 0) {
                 showToast('Tidak bisa menghapus produk yang sedang dialokasikan PO!', 'fa-circle-exclamation');
                 return;
             }
 
-            if (confirm(`Hapus produk "${p.name}"?`)) {
-                products = products.filter(prod => prod.id !== productId);
+            if (confirm(`Yakin ingin menghapus produk "${p.name}"?`)) {
+                products = products.filter(prod => String(prod.id) === String(productId));
                 saveState();
                 renderProductTable();
+                renderDashboard();
                 showToast('Produk berhasil dihapus.');
             }
         }
