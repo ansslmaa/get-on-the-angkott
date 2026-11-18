@@ -17,3 +17,8 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 console.log("Firebase berhasil terhubung!");
+console.log("================================");
+console.log("FIREBASE BERHASIL TERHUBUNG!");
+console.log("Project ID:", firebase.app().options.projectId);
+console.log("Firestore Database:", db ? "AKTIF" : "TIDAK AKTIF");
+console.log("================================");
