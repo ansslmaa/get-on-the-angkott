@@ -416,6 +416,22 @@ function renderCart() {
     // UPDATE QRIS OTOMATIS SESUAI TOTAL BELANJA
     updatePosDynamicQris();
 }
+
+function calculatePosChange() {
+    const cashInput = document.getElementById('pos-cash-input');
+    const changeDisplay = document.getElementById('pos-cash-change');
+
+    if (!cashInput || !changeDisplay) return;
+
+    const total = cart.reduce((sum, item) => {
+        return sum + (Number(item.price) * Number(item.qty));
+    }, 0);
+
+    const cashReceived = Number(cashInput.value) || 0;
+    const change = Math.max(0, cashReceived - total);
+
+    changeDisplay.textContent = formatRp(change);
+}
         function updateCartQty(productId, delta) {
             const item = cart.find(c => c.productId === productId);
             const prod = products.find(p => p.id === productId);
