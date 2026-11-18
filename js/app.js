@@ -334,6 +334,51 @@ if (mochiAdded) {
             showToast(prod.name + ' berhasil ditambahkan!');
         }
 
+
+function renderCart() {
+    const cartContainer = document.getElementById('cart-items');
+    const totalElement = document.getElementById('cart-total');
+
+    if (!cartContainer) return;
+
+    if (!cart || cart.length === 0) {
+        cartContainer.innerHTML = `
+            <div class="text-center py-8 text-slate-400">
+                <i class="fa-solid fa-cart-shopping text-3xl mb-2"></i>
+                <p>Keranjang masih kosong</p>
+            </div>
+        `;
+        if (totalElement) totalElement.innerText = 'Rp0';
+        return;
+    }
+
+    let total = 0;
+
+    cartContainer.innerHTML = cart.map(item => {
+        const subtotal = item.price * item.qty;
+        total += subtotal;
+
+        return `
+            <div class="flex justify-between items-center border-b py-3">
+                <div>
+                    <p class="font-bold">${item.name}</p>
+                    <p class="text-sm text-slate-500">
+                        Rp${item.price.toLocaleString('id-ID')} x ${item.qty}
+                    </p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="updateCartQty('${item.productId}', -1)">−</button>
+                    <span>${item.qty}</span>
+                    <button onclick="updateCartQty('${item.productId}', 1)">+</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    if (totalElement) {
+        totalElement.innerText = 'Rp' + total.toLocaleString('id-ID');
+    }
+}
         function updateCartQty(productId, delta) {
             const item = cart.find(c => c.productId === productId);
             const prod = products.find(p => p.id === productId);
@@ -711,6 +756,116 @@ function savePreOrder() {
     showToast('Pre-Order Berhasil Dibuat dan Disimpan!');
 }
 
+function renderPoList() {
+    const container = document.getElementById('po-checklist-container');
+    if (!container) return;
+
+    const dateFilter = document.getElementById('po-date-filter')?.value || '';
+    const paymentFilter = document.getElementById('po-payment-filter')?.value || '';
+    const pickupFilter = document.getElementById('po-pickup-filter')?.value || '';
+    const searchFilter = (document.getElementById('po-search')?.value || '').toLowerCase();
+
+    const filtered = preOrders.filter(po => {
+        const matchDate = !dateFilter || po.pickupDate === dateFilter;
+        const matchPayment = !paymentFilter || po.paymentStatus === paymentFilter;
+        const matchPickup = !pickupFilter || po.pickupStatus === pickupFilter;
+
+        const matchSearch =
+            (po.customerName || '').toLowerCase().includes(searchFilter) ||
+            (po.phone || '').toLowerCase().includes(searchFilter);
+
+        return matchDate && matchPayment && matchPickup && matchSearch;
+    });
+
+    if (filtered.length === 0) {
+        container.innerHTML = `
+            <div class="bg-white p-8 rounded-xl text-center border-2 border-dashed border-slate-300">
+                <p class="font-bold text-slate-500">Belum ada pesanan ditemukan.</p>
+            </div>
+        `;
+        updatePoBadge();
+        return;
+    }
+
+    container.innerHTML = filtered.map(po => `
+        <div class="bg-white p-5 rounded-xl neo-border neo-shadow space-y-4">
+
+            <div class="flex flex-wrap justify-between gap-3">
+                <div>
+                    <h3 class="font-bold text-lg">${po.customerName}</h3>
+                    <p class="text-xs text-slate-500">
+                        ID: ${po.id} | WA: ${po.phone || '-'}
+                    </p>
+                    <p class="text-xs text-slate-500">
+                        Tanggal Ambil: ${po.pickupDate}
+                    </p>
+                </div>
+
+                <div class="text-right">
+                    <p class="font-bold text-brand-blue">
+                        ${formatRp(po.totalAmount)}
+                    </p>
+                    <p class="text-xs">Dibayar: ${formatRp(po.totalPaid)}</p>
+                    <p class="text-xs text-red-600 font-bold">
+                        Sisa: ${formatRp(po.balanceRemaining)}
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap gap-2 text-xs font-bold">
+                <span class="px-3 py-1 rounded bg-yellow-100">
+                    ${po.paymentStatus}
+                </span>
+                <span class="px-3 py-1 rounded bg-blue-100">
+                    ${po.pickupStatus}
+                </span>
+            </div>
+
+            <div class="border-t pt-3">
+                <p class="font-bold text-sm mb-2">Daftar Pesanan:</p>
+
+                ${po.items.map(item => `
+                    <div class="flex justify-between text-sm py-1">
+                        <span>${item.name}</span>
+                        <span>${item.qtyPicked}/${item.qtyTotal} pcs</span>
+                    </div>
+                `).join('')}
+            </div>
+
+            <div class="flex flex-wrap gap-2 border-t pt-3">
+
+                <button onclick="openPoPickupModal('${po.id}')"
+                    class="px-3 py-2 bg-brand-green text-white rounded-lg text-xs font-bold">
+                    Pengambilan
+                </button>
+
+                <button onclick="openPoPayModal('${po.id}')"
+                    ${po.balanceRemaining <= 0 ? 'disabled' : ''}
+                    class="px-3 py-2 bg-brand-blue text-white rounded-lg text-xs font-bold disabled:opacity-40">
+                    Pembayaran
+                </button>
+
+                <button onclick="openPoHistoryModal('${po.id}')"
+                    class="px-3 py-2 bg-yellow-300 rounded-lg text-xs font-bold">
+                    Riwayat Bayar
+                </button>
+
+                <button onclick="openEditPoModal('${po.id}')"
+                    class="px-3 py-2 bg-slate-200 rounded-lg text-xs font-bold">
+                    Edit
+                </button>
+
+                <button onclick="cancelPreOrder('${po.id}')"
+                    class="px-3 py-2 bg-red-500 text-white rounded-lg text-xs font-bold">
+                    Batalkan
+                </button>
+
+            </div>
+        </div>
+    `).join('');
+
+    updatePoBadge();
+}
 function cancelPreOrder(poId) {
     if (!confirm('Batalkan pesanan PO ini? Alokasi stok produk akan dikembalikan.')) return;
     preOrders = preOrders.filter(p => p.id !== poId);
