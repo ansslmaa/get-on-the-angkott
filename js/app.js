@@ -1561,11 +1561,14 @@ function getDynamicQrisUrl(amount) {
 
 
 function updatePosDynamicQris() {
+    const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
     const qrisImage = document.getElementById('pos-qris-img');
 
-    if (qrisImage && qrisImgUrl) {
-        qrisImage.src = qrisImgUrl;
+    if (!STATIC_QRIS_RAW && qrisImgUrl) {
+        extractQrisFromImage(qrisImgUrl, updatePosDynamicQris);
     }
+
+    if (qrisImage) qrisImage.src = getDynamicQrisUrl(total);
 }
 
 if (!STATIC_QRIS_RAW && qrisImgUrl) {
