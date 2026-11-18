@@ -335,6 +335,38 @@ if (mochiAdded) {
         }
 
 
+function setPosPaymentMethod(method) {
+    posPaymentMethod = method;
+
+    const cashBox = document.getElementById('pos-cash-container');
+    const qrisBox = document.getElementById('pos-qris-container');
+
+    const cashButton = document.getElementById('pay-method-cash');
+    const qrisButton = document.getElementById('pay-method-qris');
+
+    if (method === 'QRIS') {
+        cashBox.classList.add('hidden');
+        qrisBox.classList.remove('hidden');
+
+        cashButton.classList.remove('bg-brand-yellow');
+        cashButton.classList.add('bg-slate-100');
+
+        qrisButton.classList.remove('bg-slate-100');
+        qrisButton.classList.add('bg-sky-200');
+
+        updatePosDynamicQris();
+    } else {
+        cashBox.classList.remove('hidden');
+        qrisBox.classList.add('hidden');
+
+        qrisButton.classList.remove('bg-sky-200');
+        qrisButton.classList.add('bg-slate-100');
+
+        cashButton.classList.remove('bg-slate-100');
+        cashButton.classList.add('bg-brand-yellow');
+    }
+}
+
 function renderCart() {
     const cartContainer = document.getElementById('cart-items');
     const totalElement = document.getElementById('cart-total');
@@ -349,6 +381,8 @@ function renderCart() {
             </div>
         `;
         if (totalElement) totalElement.innerText = 'Rp0';
+
+        updatePosDynamicQris();
         return;
     }
 
@@ -378,6 +412,9 @@ function renderCart() {
     if (totalElement) {
         totalElement.innerText = 'Rp' + total.toLocaleString('id-ID');
     }
+
+    // UPDATE QRIS OTOMATIS SESUAI TOTAL BELANJA
+    updatePosDynamicQris();
 }
         function updateCartQty(productId, delta) {
             const item = cart.find(c => c.productId === productId);
@@ -683,6 +720,7 @@ function savePreOrder() {
         currentQrisProof.po = null;
 
         syncAllocations();
+        saveState();
         closePoModal();
         renderPoList();
         renderDashboard();
@@ -726,6 +764,14 @@ function savePreOrder() {
     };
 
     preOrders.unshift(newPo);
+    preOrders.unshift(newPo);
+saveState();
+
+if (dp > 0) {
+    historyLogs.unshift({
+        // kode lama tetap di sini
+    });
+}
 
     if (dp > 0) {
         historyLogs.unshift({
@@ -1513,15 +1559,13 @@ function getDynamicQrisUrl(amount) {
     return `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(dynamicPayload)}`;
 }
 
+
 function updatePosDynamicQris() {
-    const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
     const qrisImage = document.getElementById('pos-qris-img');
 
-    if (!STATIC_QRIS_RAW && qrisImgUrl) {
-        extractQrisFromImage(qrisImgUrl, updatePosDynamicQris);
+    if (qrisImage && qrisImgUrl) {
+        qrisImage.src = qrisImgUrl;
     }
-
-    if (qrisImage) qrisImage.src = getDynamicQrisUrl(total);
 }
 
 if (!STATIC_QRIS_RAW && qrisImgUrl) {
