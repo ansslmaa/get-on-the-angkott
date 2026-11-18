@@ -763,29 +763,21 @@ function savePreOrder() {
         }] : []
     };
 
-    preOrders.unshift(newPo);
-    preOrders.unshift(newPo);
-saveState();
+    
+preOrders.unshift(newPo);
 
 if (dp > 0) {
     historyLogs.unshift({
-        // kode lama tetap di sini
+        id: 'TX-' + Math.floor(100000 + Math.random() * 900000),
+        date: new Date().toISOString(),
+        orderId: poId,
+        customer: name.toUpperCase(),
+        type: dp >= total ? 'Pembayaran Lunas PO' : 'DP Pre-Order',
+        method: dpMethod,
+        amount: dp,
+        proofImage: dpMethod === 'QRIS' ? currentQrisProof.po : null
     });
 }
-
-    if (dp > 0) {
-        historyLogs.unshift({
-            id: 'TX-' + Math.floor(100000 + Math.random() * 900000),
-            date: new Date().toISOString(),
-            orderId: poId,
-            customer: name.toUpperCase(),
-            type: dp >= total ? 'Pembayaran Lunas PO' : 'DP Pre-Order',
-            method: dpMethod,
-            amount: dp,
-            proofImage: dpMethod === 'QRIS' ? currentQrisProof.po : null
-        });
-    }
-
     currentQrisProof.po = null;
     syncAllocations();
 
